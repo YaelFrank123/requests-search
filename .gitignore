@@ -1,0 +1,30 @@
+## .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+
+## Visual Studio / Rider
+.vs/
+.idea/
+
+## Local database files (see ADR-001)
+*.db
+*.db-shm
+*.db-wal
+
+## Node / Angular
+node_modules/
+dist/
+.angular/
+
+## OS
+Thumbs.db
+.DS_Store
+
+## Not published: exam paper, local viewing helper, local tool settings
+*.docx
+markdown-rtl.css
+.claude/settings.local.json
