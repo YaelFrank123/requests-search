@@ -1,3 +1,10 @@
+> **ארכיון — אינו מקור אמת.**
+> מסמך תכנון מוקדם שערבב דרישות, עיצוב, החלטות ומשימות בקובץ אחד, ולכן צבר סתירות פנימיות.
+> הוחלף על ידי `specs/requirements.md` (ה-WHAT) וקבצי `specs/design-*.md` (ה-HOW).
+> נשמר כתיעוד של תהליך התכנון בלבד.
+
+---
+
 <div dir="rtl" style="text-align: right;">
 
 # תוכנית ארכיטקטורה – מבחן מקצועי (Senior .NET / AWS / Microservices / Clean Architecture)

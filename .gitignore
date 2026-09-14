@@ -26,5 +26,6 @@ Thumbs.db
 
 ## Not published: exam paper, local viewing helper, local tool settings
 *.docx
+מבחן מקצועי.md
 markdown-rtl.css
 .claude/settings.local.json
