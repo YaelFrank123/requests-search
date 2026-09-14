@@ -374,12 +374,20 @@ The design column is filled in as the design documents are written. **A requirem
 
 | Requirement | Origin | Design section |
 |---|---|---|
-| `REQ-F-001`–`REQ-F-007` | Part A — Backend | *pending* |
-| `REQ-F-008`–`REQ-F-010` | Part A — Permissions | *pending* |
-| `REQ-F-101`–`REQ-F-107` | Part A — Frontend | *pending* |
-| `REQ-N-001` | Part A — Performance | *pending* |
-| `REQ-N-002`, `REQ-N-003` | `[DERIVED]` | *pending* |
-| `REQ-A-001`, `REQ-A-002` | Part B | *pending* |
-| `REQ-C-001` | Part C | *pending* |
-| `REQ-T-001` | Part A — Tests | *pending* |
-| `REQ-D-001`–`REQ-D-014` | Submission | *pending* |
+| `REQ-F-001` | Part A — Backend | `design-feature.md` ADR-006, §3.3, §4 |
+| `REQ-F-002`, `REQ-F-004`, `REQ-F-006` | Part A — Backend | `design-feature.md` §3.3, §4 |
+| `REQ-F-003` | Part A — Backend | `design-feature.md` §3.3, §4 |
+| `REQ-F-005` | Part A — Backend | `design-feature.md` §3.3 |
+| `REQ-F-007` | Part A — Backend | `design-feature.md` ADR-003, ADR-004, §3.4 |
+| `REQ-F-008`, `REQ-F-009` | Part A — Permissions | `design-feature.md` §3.2, §3.3 |
+| `REQ-F-010` | Part A — Permissions | `design-feature.md` ADR-002, §3.2, §3.4 |
+| `REQ-F-101`–`REQ-F-106` | Part A — Frontend | `design-feature.md` ADR-005, §3.5 |
+| `REQ-F-107` | Part A — Frontend | `design-feature.md` ADR-005 |
+| `REQ-N-001` | Part A — Performance | `design-feature.md` ADR-001, §3.3 |
+| `REQ-N-002` | `[DERIVED]` | `design-feature.md` ADR-003, §3.3, §3.5 |
+| `REQ-N-003` | `[DERIVED]` | `design-feature.md` §3.3, §4 |
+| `REQ-T-001` | Part A — Tests | `design-feature.md` §3.6 |
+| `REQ-D-002`–`REQ-D-012` | Submission | `design-feature.md` §5 step 8 |
+| `REQ-A-001`, `REQ-A-002` | Part B | *pending — `design-architecture-cloud.md`* |
+| `REQ-C-001` | Part C | *pending — `design-architecture-cloud.md`* |
+| `REQ-D-001`, `REQ-D-013`, `REQ-D-014` | Submission | *`REQ-D-001` on completion of §5; `REQ-D-013` pending Part B/C; `REQ-D-014` = this directory* |
