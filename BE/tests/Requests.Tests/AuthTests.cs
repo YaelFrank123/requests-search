@@ -42,6 +42,12 @@ public class AuthTests : IClassFixture<WebApplicationFactory<Program>>
         var wrongPasswordBody = await wrongPassword.Content.ReadAsStringAsync();
         var unknownUserBody = await unknownUser.Content.ReadAsStringAsync();
         Assert.Equal(wrongPasswordBody, unknownUserBody);
+
+        // §3.4a's documented 401 shape is { title, status } — asserted by field name, not just
+        // "some body came back", since the client reads error.error.title specifically.
+        using var failureDoc = System.Text.Json.JsonDocument.Parse(wrongPasswordBody);
+        Assert.Equal("Invalid username or password.", failureDoc.RootElement.GetProperty("title").GetString());
+        Assert.Equal(401, failureDoc.RootElement.GetProperty("status").GetInt32());
     }
 
     [Fact]

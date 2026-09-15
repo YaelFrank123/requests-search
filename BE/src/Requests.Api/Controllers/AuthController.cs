@@ -21,7 +21,7 @@ public class AuthController : ControllerBase
     {
         var result = await _authService.LoginAsync(command, cancellationToken);
         if (result is null)
-            return Unauthorized(new { message = "Invalid username or password." });
+            return Unauthorized(new { title = "Invalid username or password.", status = StatusCodes.Status401Unauthorized });
 
         return Ok(result);
     }
