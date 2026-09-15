@@ -1,10 +1,8 @@
 @if (loading) {
   <mat-progress-bar mode="indeterminate" class="state-loading"></mat-progress-bar>
-} @else if (errorFields) {
+} @else if (errorMessage) {
   <div class="state-error">
-    @for (entry of errorEntries; track entry.field) {
-      <p><strong>{{ entry.field }}:</strong> {{ entry.messages.join(' ') }}</p>
-    }
+    <p>{{ errorMessage }}</p>
   </div>
 } @else if (rows.length === 0) {
   <p class="state-empty">No requests match your filters.</p>

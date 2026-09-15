@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Inject, Injectable, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 
 import { API_BASE_URL } from '../config/api-base-url.token';
@@ -20,6 +21,7 @@ export class AuthService {
 
   constructor(
     private readonly http: HttpClient,
+    private readonly router: Router,
     @Inject(API_BASE_URL) private readonly apiBaseUrl: string
   ) {}
 
@@ -49,6 +51,7 @@ export class AuthService {
   logout(): void {
     sessionStorage.removeItem(STORAGE_KEY);
     this.session.set(null);
+    this.router.navigateByUrl('/login');
   }
 
   private storeSession(response: LoginResponse): void {

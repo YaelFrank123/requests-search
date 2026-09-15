@@ -26,7 +26,7 @@ export class RequestResultsTableComponent {
   @Input() sortActive = '';
   @Input() sortDirection: 'asc' | 'desc' | '' = '';
   @Input() loading = false;
-  @Input() errorFields: Record<string, string[]> | null = null;
+  @Input() errorMessage: string | null = null;
 
   @Output() readonly sortChange = new EventEmitter<Sort>();
   @Output() readonly pageChange = new EventEmitter<PageEvent>();
@@ -42,11 +42,4 @@ export class RequestResultsTableComponent {
   ];
 
   readonly pageSizeOptions = [10, 25, 50, 100];
-
-  get errorEntries(): Array<{ field: string; messages: string[] }> {
-    if (!this.errorFields) {
-      return [];
-    }
-    return Object.entries(this.errorFields).map(([field, messages]) => ({ field, messages }));
-  }
 }

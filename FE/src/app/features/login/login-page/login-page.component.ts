@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -28,6 +29,7 @@ export class LoginPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly form = this.fb.nonNullable.group({
     username: ['', Validators.required],
@@ -46,18 +48,21 @@ export class LoginPageComponent {
     this.loading = true;
     this.errorMessage = null;
 
-    this.authService.login(username, password).subscribe({
-      next: () => {
-        this.loading = false;
-        this.router.navigateByUrl('/requests');
-      },
-      error: (error: unknown) => {
-        this.loading = false;
-        this.errorMessage =
-          error instanceof HttpErrorResponse && typeof error.error?.title === 'string'
-            ? error.error.title
-            : 'Invalid username or password.';
-      }
-    });
+    this.authService
+      .login(username, password)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.loading = false;
+          this.router.navigateByUrl('/requests');
+        },
+        error: (error: unknown) => {
+          this.loading = false;
+          this.errorMessage =
+            error instanceof HttpErrorResponse && typeof error.error?.title === 'string'
+              ? error.error.title
+              : 'Invalid username or password.';
+        }
+      });
   }
 }

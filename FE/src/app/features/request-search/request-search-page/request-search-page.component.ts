@@ -8,8 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { Sort } from '@angular/material/sort';
-import { Router } from '@angular/router';
-import { EMPTY, Subject, catchError, debounceTime, startWith, switchMap, takeUntil, tap } from 'rxjs';
+import { EMPTY, Subject, catchError, debounceTime, distinctUntilChanged, startWith, switchMap, takeUntil, tap } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { RequestsApiService } from '../../../core/services/requests-api.service';
@@ -47,7 +46,6 @@ export class RequestSearchPageComponent implements OnInit, OnDestroy {
   protected readonly authService = inject(AuthService);
   private readonly api = inject(RequestsApiService);
   private readonly fb = inject(FormBuilder);
-  private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
   private readonly search$ = new Subject<void>();
 
@@ -69,7 +67,7 @@ export class RequestSearchPageComponent implements OnInit, OnDestroy {
   rows: RequestDto[] = [];
   totalCount = 0;
   loading = false;
-  errorFields: Record<string, string[]> | null = null;
+  errorMessage: string | null = null;
 
   get page(): number {
     return this.currentPage;
@@ -93,6 +91,7 @@ export class RequestSearchPageComponent implements OnInit, OnDestroy {
     this.filterForm.valueChanges
       .pipe(
         debounceTime(300),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
         tap(() => (this.currentPage = 1)),
         takeUntil(this.destroy$)
       )
@@ -103,16 +102,16 @@ export class RequestSearchPageComponent implements OnInit, OnDestroy {
         startWith(undefined),
         tap(() => {
           this.loading = true;
-          this.errorFields = null;
+          this.errorMessage = null;
         }),
         switchMap(() =>
           this.api.search(this.buildQuery()).pipe(
             catchError((error: unknown) => {
               this.loading = false;
-              this.errorFields =
+              this.errorMessage =
                 error instanceof HttpErrorResponse && error.status === 400 && error.error?.errors
-                  ? (error.error.errors as Record<string, string[]>)
-                  : { request: ['Something went wrong loading requests.'] };
+                  ? Object.values(error.error.errors as Record<string, string[]>).flat().join(' ')
+                  : 'Something went wrong loading requests.';
               return EMPTY;
             })
           )
@@ -158,7 +157,6 @@ export class RequestSearchPageComponent implements OnInit, OnDestroy {
 
   logout(): void {
     this.authService.logout();
-    this.router.navigateByUrl('/login');
   }
 
   private buildQuery(): RequestSearchQuery {
