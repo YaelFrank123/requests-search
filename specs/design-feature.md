@@ -363,7 +363,7 @@ Each of these prevents a specific defect. They are listed because every one of t
 |---|---|---|
 | `RequestSearchQuery` is a `record` **with a body and `init` properties**, not a positional record | `REQ-F-001`–`REQ-F-007` | A positional record has no parameterless constructor; model binding fails |
 | The status collection is typed `List<T>` or `T[]`, **not `IReadOnlyList<T>`** | `REQ-F-002` | The collection binder requires an `ICollection<T>`-compatible target; `IReadOnlyList<T>` binds to null silently |
-| The status property carries `[FromQuery(Name = "status")]` if the query-string name differs from the property name | `REQ-F-002` | Values arrive unbound |
+| The status property is named `Status`, matching its query-string name, so no `[FromQuery(Name = …)]` is needed | `REQ-F-002` | A differing name arrives unbound — and reaching for the attribute to fix it pulls an MVC reference into `Requests.Application`, which may reference only `Requests.Domain` (§1, principle 1) |
 | Date upper bound is `CreatedAt < end.Date.AddDays(1)` | `REQ-F-003` | Everything created on the end day is excluded |
 | Incoming date bounds are normalised to UTC | `REQ-F-003`, `REQ-N-003` | A local-midnight boundary shifts results by hours |
 | `DateTime` properties carry a converter restoring `DateTimeKind.Utc` on read | `REQ-N-003`, `REQ-F-003` | SQLite returns `Unspecified`, the response omits `Z`, and the browser shifts every displayed timestamp to local time. Filtering still works, so nothing fails loudly |
@@ -385,10 +385,10 @@ Dependency-ordered. Each step names what it serves and how it is verified.
 |---|---|---|---|
 | 1 | Solution file; switch provider to SQLite; `EnsureCreated`; indexes in `OnModelCreating`; 200k bulk seed | `REQ-N-001`, ADR-001 | Application starts; database file is created and populated |
 | 2 | `ICurrentUser`, `PagedResult<T>`, `RequestSearchQuery` with validation | `REQ-F-001`–`REQ-F-007`, `REQ-N-002` | Compiles; validation rules reviewed against `REQ-F-007`'s table |
-| 3 | Replace `IRequestRepository` / `IRequestService` / `RequestService`. **In the same step, delete the two existing tests and `FakeRequestRepository`** — they implement and call the removed `GetAllAsync`, so the solution does not build until they go. Replacements arrive in step 6 | `REQ-F-010` | `dotnet build` succeeds; no unfiltered data path remains anywhere |
-| 4 | `RequestRepository.SearchAsync`, sort mapping | `REQ-F-001`–`REQ-F-009`, `REQ-N-001` | `EXPLAIN QUERY PLAN` shows index use on the permission path |
+| 3 | Replace `IRequestRepository` / `IRequestService` / `RequestService`. **In the same step, delete the two existing tests and `FakeRequestRepository`** — they implement and call the removed `GetAllAsync`, so the solution does not build until they go. Replacements arrive in step 6 | `REQ-F-010` | No unfiltered data path remains anywhere. **The solution does not build until step 4** — `RequestRepository` still implements the removed `GetAllAsync`, so steps 3 and 4 run back-to-back and the build gate is at the end of step 4 |
+| 4 | `RequestRepository.SearchAsync`, sort mapping | `REQ-F-001`–`REQ-F-009`, `REQ-N-001` | `dotnet build` succeeds — the first green build since step 3; `EXPLAIN QUERY PLAN` shows index use on the permission path |
 | 5 | Authentication scheme, `ClaimsCurrentUserAccessor`, controller, `Program.cs`, `appsettings` | `REQ-F-010`, `REQ-F-007` | No identity → 401; regular and administrator identities return different totals |
-| 6 | Five tests | `REQ-T-001` | `dotnet test` green |
+| 6 | Six tests | `REQ-T-001` | `dotnet test` green |
 | 7 | UI: project setup; `site.config.json` and the config service; models; API client and identity interceptor; search page with the filter controls; results table; the three states | `REQ-F-101`–`REQ-F-107`, `REQ-N-002` | All four interaction states exercised against the running API; changing the address in `site.config.json` retargets the client without a rebuild |
 | 8 | README and AI-usage document | `REQ-D-002`–`REQ-D-012` | Every `REQ-D` acceptance criterion satisfied |
 
