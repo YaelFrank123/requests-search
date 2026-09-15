@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -28,19 +28,19 @@ function toLocalDateString(date: Date): string {
 }
 
 @Component({
-  selector: 'app-request-search-page',
-  standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatDatepickerModule,
-    MatButtonModule,
-    RequestResultsTableComponent
-  ],
-  templateUrl: './request-search-page.component.html',
-  styleUrl: './request-search-page.component.scss'
+    selector: 'app-request-search-page',
+    imports: [
+        ReactiveFormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatSelectModule,
+        MatDatepickerModule,
+        MatButtonModule,
+        RequestResultsTableComponent
+    ],
+    templateUrl: './request-search-page.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './request-search-page.component.scss'
 })
 export class RequestSearchPageComponent implements OnInit, OnDestroy {
   protected readonly authService = inject(AuthService);

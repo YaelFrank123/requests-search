@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -12,11 +12,11 @@ import { RequestDto } from '../../../core/models/request.model';
  * cleared sort means, page-index vs page-number — is the stateful page's job.
  */
 @Component({
-  selector: 'app-request-results-table',
-  standalone: true,
-  imports: [MatTableModule, MatSortModule, MatPaginatorModule, MatProgressBarModule],
-  templateUrl: './request-results-table.component.html',
-  styleUrl: './request-results-table.component.scss'
+    selector: 'app-request-results-table',
+    imports: [MatTableModule, MatSortModule, MatPaginatorModule, MatProgressBarModule],
+    templateUrl: './request-results-table.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styleUrl: './request-results-table.component.scss'
 })
 export class RequestResultsTableComponent {
   @Input() rows: RequestDto[] = [];
