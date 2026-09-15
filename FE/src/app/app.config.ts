@@ -1,5 +1,5 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { APP_INITIALIZER, ApplicationConfig, inject, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, inject, provideAppInitializer, provideZoneChangeDetection } from '@angular/core';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { provideRouter } from '@angular/router';
 
@@ -17,12 +17,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     provideNativeDateAdapter(),
     // The application does not render until site.config.json has loaded.
-    {
-      provide: APP_INITIALIZER,
-      useFactory: (config: AppConfigService) => () => config.load(),
-      deps: [AppConfigService],
-      multi: true
-    },
+    provideAppInitializer(() => inject(AppConfigService).load()),
     { provide: API_BASE_URL, useFactory: () => inject(AppConfigService).apiBaseUrl }
   ]
 };
