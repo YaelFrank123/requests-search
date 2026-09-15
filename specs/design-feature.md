@@ -2,7 +2,7 @@
 
 > **This document states HOW.** Every section cites the requirement IDs it serves.
 > `requirements.md` is the source of truth. Where this document contradicts it, this document is wrong and gets corrected.
-> Scope: Part A only. Parts B and C are designed in `design-architecture-cloud.md`.
+> Scope: Part A only.
 
 ---
 
@@ -38,7 +38,7 @@ These constrain every decision below.
 **Consequences.**
 - **No migrations.** `EnsureCreated()` builds the schema, including indexes declared in `OnModelCreating`. EF migrations are neither required nor added.
 - `REQ-N-001` becomes verifiable: `EXPLAIN QUERY PLAN` shows whether an index is used. That output is quoted in the README.
-- The production recommendation remains a managed relational database — see `design-architecture-cloud.md`. The gap between "what runs locally" and "what is recommended in production" is itself documented in the README.
+- The gap between what runs locally and what would be recommended in production is documented in the README.
 
 ### ADR-002 — Source of the acting identity
 *Serves `REQ-F-010`, `REQ-F-008`, `REQ-F-009`*
@@ -55,7 +55,7 @@ These constrain every decision below.
 
 **Decision: B.**
 
-**The counter-argument, recorded as required by the specification.** A strict reading says enforcement against an identity the client asserts is hollow: anyone may send `X-Is-Admin: true`. This is true, and it is the reason option C exists. It was rejected because the brief asks for *permission enforcement*, not *identity verification*, and because the derivation rule adopted in `requirements.md` admits only **necessary** consequences — authorization can be enforced against a trusted identity source without building a sign-in mechanism. In the target architecture identity arrives from an identity provider outside this service entirely (`design-architecture-cloud.md`).
+**The counter-argument, recorded as required by the specification.** A strict reading says enforcement against an identity the client asserts is hollow: anyone may send `X-Is-Admin: true`. This is true, and it is the reason option C exists. It was rejected because the brief asks for *permission enforcement*, not *identity verification*, and because the derivation rule adopted in `requirements.md` admits only **necessary** consequences — authorization can be enforced against a trusted identity source without building a sign-in mechanism. In a larger system identity would arrive from an identity provider outside this service entirely.
 
 **Consequences.**
 - The README states plainly that the header scheme is **not secure** and why that is acceptable here.
@@ -106,7 +106,33 @@ These constrain every decision below.
 
 **Two consequences that must be handled in code, not assumed away.**
 1. **User input must be escaped.** `%` and `_` are wildcards in `LIKE`; a user typing `%` would otherwise match every row. The value is escaped and an `ESCAPE` clause is supplied.
-2. **A leading wildcard is not sargable.** This filter scans; no index can serve it. This is the accepted cost of reading "partial search" literally. The production path — a trigram index or a dedicated search engine — is described in `design-architecture-cloud.md` and noted in the README.
+2. **A leading wildcard is not sargable.** This filter scans; no index can serve it. This is the accepted cost of reading "partial search" literally. The production path — a trigram index or a dedicated search engine — is noted in the README.
+
+### ADR-007 — Source of the API base URL
+*Serves `REQ-D-002`, `REQ-F-107`*
+
+**Context.** The client must reach the API. Where that address comes from decides whether changing environment is a code change or a configuration change.
+
+**Alternatives.**
+
+| Option | For | Against |
+|---|---|---|
+| **A** Hard-coded in the API service | Nothing to set up | Changing the address means editing source and rebuilding |
+| **B** Angular `environment.ts` build-time replacement | Idiomatic, typed, and entirely adequate at this scope | The address is baked into the bundle, so each environment needs its own build |
+| **C** Runtime `site.config.json`, read at bootstrap | The address is edited after the build, as deployment configuration rather than as source | Bootstrap must wait for the file before the application renders |
+
+**Decision: C — a runtime `site.config.json`.**
+
+It is served as a static asset, read once during bootstrap by an application initialiser, and exposed through an injection token. **No component or service holds a literal URL.**
+
+The justification stands on its own: an endpoint address is configuration, not code. It also makes the client **symmetric with the server**, which already reads its connection string and CORS origins from `appsettings` rather than from source — the same rule applied on both sides.
+
+> Option B is not a poor choice and would not be a defect at this scope. C is selected because configuration at run time was asked for, not because B is inadequate.
+
+**Consequences.**
+- The application does not render until configuration has loaded. A failure to load is a startup error, **not** a silent fallback to some default address.
+- The file is deployment configuration, so it is not treated as build output.
+- The README states where the address is changed (`REQ-D-002`).
 
 ---
 
@@ -168,15 +194,132 @@ Two round trips — count, then page — are expected and correct.
 | CORS policy for the UI origin, from configuration | `REQ-F-101`–`REQ-F-106` |
 | `appsettings.json` — connection string, CORS origins | `REQ-D-002` |
 
+### 3.4a API contract
+
+This is the seam between the two sides. Both §3.4 and §3.5 cite it rather than each assuming a shape; a mismatch here is a silent failure, not a compile error.
+
+**Endpoint:** `GET /api/requests`
+
+**Identity headers** (ADR-002): `X-User-Id` — integer, required; `X-Is-Admin` — `true` / `false`, optional. Absent or unparseable `X-User-Id` → **401**.
+
+**Query parameters**
+
+| Name | Type | Example | Serves |
+|---|---|---|---|
+| `requestNumber` | string | `000123` | `REQ-F-001` |
+| `status` | enum name, **repeatable** | `status=New&status=InProgress` | `REQ-F-002` |
+| `requestType` | enum name | `requestType=Legal` | `REQ-F-004` |
+| `createdFrom` | date `yyyy-MM-dd`, UTC | `2026-01-01` | `REQ-F-003` |
+| `createdTo` | date `yyyy-MM-dd`, UTC, **inclusive of that whole day** | `2026-09-14` | `REQ-F-003` |
+| `sortBy` | one of `requestNumber`, `status`, `requestType`, `createdAt` | `createdAt` | `REQ-F-005` |
+| `sortDirection` | `asc` \| `desc` | `desc` | `REQ-F-005` |
+| `page` | integer ≥ 1, default **1** | `2` | `REQ-N-002` |
+| `pageSize` | integer 1–**100**, default **25** | `25` | `REQ-N-002` |
+
+Enumerations are accepted and returned **by name**, never by number (see `JsonStringEnumConverter`, §3.4). All timestamps in and out are UTC (`REQ-N-003`).
+
+**200 response**
+
+```json
+{
+  "items": [
+    {
+      "id": 1234,
+      "requestNumber": "REQ-001234",
+      "customerId": 35,
+      "ownerId": 5,
+      "assignedToUserId": 2,
+      "status": "InProgress",
+      "requestType": "Legal",
+      "createdAt": "2026-03-11T09:42:00Z"
+    }
+  ],
+  "totalCount": 3847,
+  "page": 2,
+  "pageSize": 25
+}
+```
+
+`totalCount` is the count **after** the permission restriction (`REQ-F-008`). It is what the paginator binds to, and it is never the length of `items`.
+
+**400 response** — `ValidationProblemDetails`, produced by `[ApiController]` from `IValidatableObject` (ADR-004). The field-level detail is what `REQ-F-007` requires and what the UI renders in its error state (`REQ-F-105`).
+
+```json
+{
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "createdFrom": ["createdFrom must not be later than createdTo."],
+    "sortBy": ["'ownerName' is not a sortable field."]
+  }
+}
+```
+
 ### 3.5 User interface
-*`REQ-F-101`–`REQ-F-107`*
+*`REQ-F-101`–`REQ-F-107`, `REQ-N-002`*
 
-One stateful page component owns filter, sort and page state and performs the HTTP call; presentational child components for the filter form and the results table receive inputs and emit events. Filter changes are debounced, and an in-flight request is cancelled when a newer one supersedes it.
+**Structure** under `frontend/src/app/`:
 
-- **Filter form** (`REQ-F-101`): text input, multi-select for status, single select for type, date-range input. Clearing a control removes that filter.
-- **Sort control** (`REQ-F-102`) and **results table** (`REQ-F-103`).
-- **Paging** (`REQ-N-002`): the paginator's length is fed from the response's total count — **never from the length of the returned array**.
-- **Three distinct states** (`REQ-F-104`, `REQ-F-105`, `REQ-F-106`): a loading indicator, an inline error block that surfaces field-level detail from `REQ-F-007`, and an explicit "no results match these filters" message. They are mutually exclusive and separately styled, as `REQ-F-106` requires.
+```
+core/
+  config/         app-config.service.ts, api-base-url.token.ts
+  models/         request.model.ts, search-query.model.ts, paged-result.model.ts
+  services/       requests-api.service.ts, current-user.service.ts
+  interceptors/   identity.interceptor.ts
+features/request-search/
+  request-search-page/      (stateful — owns state and hosts the filter controls)
+  request-results-table/    (presentational)
+app.routes.ts, app.config.ts, app.component.*
+```
+
+**Models** — interfaces only, no behaviour. They exist so that the API service and the table agree on field names instead of each guessing.
+
+| Model | Describes |
+|---|---|
+| `RequestDto` + `RequestStatus`, `RequestType` | One result row, mirroring §3.4a exactly. Enumerations are **string** unions, not numeric |
+| `RequestSearchQuery` | Filter, sort and page state as one object — the single definition of "a search" |
+| `PagedResult<T>` | The response envelope: `items`, `totalCount`, `page`, `pageSize` |
+
+**Components** — two, not three.
+
+| Component | Kind | Owns | Inputs | Outputs |
+|---|---|---|---|---|
+| `RequestSearchPageComponent` | stateful | the filter form group, sort state, page state, and the loading / error / results state; renders the filter controls directly | — | — |
+| `RequestResultsTableComponent` | presentational | nothing | `rows`, `totalCount`, `page`, `pageSize`, `sort`, `loading`, `errorMessage` | `sortChange`, `pageChange` |
+
+> **Why the filter form is not its own component.** It would never be reused, and splitting it would buy readability at the cost of passing a form group across a boundary for no other purpose. The split that *is* worth making is the table, because that boundary is what keeps sorting and paging on the server (see the state rules below).
+
+**Services and configuration**
+
+| Element | Responsibility |
+|---|---|
+| `AppConfigService` + `API_BASE_URL` token | Reads `site.config.json` once at bootstrap and exposes the address by injection (ADR-007). **The only place the API address exists** |
+| `RequestsApiService` | One method, `search(query)`, building the query string exactly as §3.4a defines — including the repeated `status` parameter. Takes the base address by injection; holds no literal URL |
+| `CurrentUserService` | Holds the acting identity for the demonstration switcher (`REQ-F-010`, ADR-002) |
+| `identityInterceptor` | Attaches the identity headers to every outgoing request, so no component or service handles them |
+
+**Material elements**, each mapped to the requirement it serves:
+
+| Requirement | Element |
+|---|---|
+| `REQ-F-001` | `matInput` text field |
+| `REQ-F-002` | `mat-select` with `multiple` |
+| `REQ-F-003` | `mat-date-range-input` (requires the date adapter — §4) |
+| `REQ-F-004` | `mat-select` |
+| `REQ-F-102` | `matSort` with `mat-sort-header` |
+| `REQ-F-103` | `mat-table` |
+| `REQ-N-002` | `mat-paginator`, `length` bound to `totalCount` |
+| `REQ-F-104` | `mat-progress-bar` |
+| `REQ-F-105` | inline error block rendering the `errors` map from §3.4a |
+| `REQ-F-106` | explicit empty-state message, visually distinct from the other two |
+
+**State ownership** — three rules, because this is the decision that is expensive to reverse:
+
+1. **All query state lives in the page component.** Filter, sort and page are one unit — changing a filter resets to page 1 — and requests are issued from one place only.
+2. **The results table holds no state and calls no HTTP.** It renders inputs and emits events; the page decides what an event means.
+3. **The table is not bound to the component library's built-in client-side sort and page source** (§4). Sort and page events travel up and become a new server request. Bound the other way, the table would sort the twenty-five rows it already holds instead of the two hundred thousand on the server — and `REQ-N-001` would break silently.
+
+**Flow:** a filter, sort or page change updates page state → debounced → a request is issued, superseding and cancelling any in flight → the response replaces `rows` and `totalCount` → exactly one of the three states in `REQ-F-104`–`REQ-F-106` is rendered.
 
 ### 3.6 Tests
 *`REQ-T-001`*
@@ -224,10 +367,9 @@ Dependency-ordered. Each step names what it serves and how it is verified.
 | 4 | `RequestRepository.SearchAsync`, sort mapping | `REQ-F-001`–`REQ-F-009`, `REQ-N-001` | `EXPLAIN QUERY PLAN` shows index use on the permission path |
 | 5 | Authentication scheme, `ClaimsCurrentUserAccessor`, controller, `Program.cs`, `appsettings` | `REQ-F-010`, `REQ-F-007` | No identity → 401; regular and administrator identities return different totals |
 | 6 | Five tests | `REQ-T-001` | `dotnet test` green |
-| 7 | UI: project setup, API client, filter form, results table, three states | `REQ-F-101`–`REQ-F-107` | All four interaction states exercised against the running API |
+| 7 | UI: project setup; `site.config.json` and the config service; models; API client and identity interceptor; search page with the filter controls; results table; the three states | `REQ-F-101`–`REQ-F-107`, `REQ-N-002` | All four interaction states exercised against the running API; changing the address in `site.config.json` retargets the client without a rebuild |
 | 8 | README and AI-usage document | `REQ-D-002`–`REQ-D-012` | Every `REQ-D` acceptance criterion satisfied |
 
-Parts B and C, and the diagrams of `REQ-D-013`, follow in `design-architecture-cloud.md` after step 8.
 
 ---
 
@@ -242,11 +384,11 @@ Parts B and C, and the diagrams of `REQ-D-013`, follow in `design-architecture-c
 | `REQ-F-007` | ADR-003, ADR-004, §3.4 |
 | `REQ-F-008`, `REQ-F-009` | §3.2, §3.3 |
 | `REQ-F-010` | ADR-002, §3.2, §3.4 |
-| `REQ-F-101`–`REQ-F-106` | ADR-005, §3.5 |
-| `REQ-F-107` | ADR-005 |
+| `REQ-F-101`–`REQ-F-106` | ADR-005, §3.4a, §3.5 |
+| `REQ-F-107` | ADR-005, ADR-007 |
 | `REQ-N-001` | ADR-001, §3.3 |
-| `REQ-N-002` | ADR-003, §3.3, §3.5 |
-| `REQ-N-003` | §3.3, §4 |
+| `REQ-N-002` | ADR-003, §3.3, §3.4a, §3.5 |
+| `REQ-N-003` | §3.3, §3.4a, §4 |
 | `REQ-T-001` | §3.6 |
-| `REQ-D-002`–`REQ-D-012` | §5 step 8 |
-| `REQ-A-001`, `REQ-A-002`, `REQ-C-001`, `REQ-D-013` | *`design-architecture-cloud.md`* |
+| `REQ-D-002` | ADR-007, §5 step 8 |
+| `REQ-D-003`–`REQ-D-012` | §5 step 8 |
