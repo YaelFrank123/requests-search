@@ -9,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { Sort } from '@angular/material/sort';
-import { EMPTY, Subject, catchError, debounceTime, distinctUntilChanged, startWith, switchMap, tap } from 'rxjs';
+import { EMPTY, Subject, catchError, startWith, switchMap, tap } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { RequestsApiService } from '../../../core/services/requests-api.service';
@@ -76,17 +76,6 @@ export class RequestSearchPageComponent implements OnInit {
   readonly sortDirection = computed(() => this.currentSort().sortDirection ?? '');
 
   ngOnInit(): void {
-    // A filter change always returns to page 1 — landing on page 40 of a
-    // three-row result would just show the empty state for the wrong reason.
-    this.filterForm.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-        tap(() => this.currentPage.set(1)),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe(() => this.search$.next());
-
     this.search$
       .pipe(
         startWith(undefined),
@@ -131,6 +120,11 @@ export class RequestSearchPageComponent implements OnInit {
     this.search$.next();
   }
 
+  applyFilters(): void {
+    this.currentPage.set(1);
+    this.search$.next();
+  }
+
   clearFilters(): void {
     this.filterForm.reset({
       requestNumber: '',
@@ -139,6 +133,7 @@ export class RequestSearchPageComponent implements OnInit {
       createdFrom: null,
       createdTo: null
     });
+    this.applyFilters();
   }
 
   logout(): void {
