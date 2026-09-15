@@ -11,5 +11,14 @@ public sealed class PasswordHasher : IPasswordHasher
     public string Hash(User user, string password) => _inner.HashPassword(user, password);
 
     public bool Verify(User user, string password)
-        => _inner.VerifyHashedPassword(user, user.PasswordHash, password) != PasswordVerificationResult.Failed;
+    {
+        try
+        {
+            return _inner.VerifyHashedPassword(user, user.PasswordHash, password) != PasswordVerificationResult.Failed;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
 }

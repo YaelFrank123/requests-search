@@ -19,11 +19,13 @@ public sealed class ClaimsCurrentUserAccessor : ICurrentUser
         get
         {
             var value = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            return int.TryParse(value, out var userId) ? userId : 0;
+            return int.TryParse(value, out var userId)
+                ? userId
+                : throw new InvalidOperationException(
+                    "The authenticated principal carries no usable NameIdentifier claim.");
         }
     }
 
     public bool IsAdministrator
-        => _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Role)
-            == nameof(UserRole.Administrator);
+        => _httpContextAccessor.HttpContext?.User.IsInRole(nameof(UserRole.Administrator)) ?? false;
 }

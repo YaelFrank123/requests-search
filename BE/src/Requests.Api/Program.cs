@@ -48,6 +48,7 @@ builder.Services.AddSwaggerGen(o =>
     });
 });
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddProblemDetails();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
@@ -89,6 +90,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseExceptionHandler();
 
 app.UseRouting();
 app.UseCors();

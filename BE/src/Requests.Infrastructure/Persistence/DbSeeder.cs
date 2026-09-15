@@ -10,7 +10,9 @@ public static class DbSeeder
 
     // Bulk-inserted users never log in, so their hash never needs to verify
     // against anything — only ids 1 and 2 (the demo accounts) get a real hash below.
-    private const string UnusedPasswordHash = "N/A";
+    // Empty string decodes as valid, zero-length base64, so PasswordHasher.Verify
+    // fails cleanly instead of throwing FormatException on a non-base64 placeholder.
+    private const string UnusedPasswordHash = "";
 
     public const string AdminDemoPassword = "Admin123!";
     public const string UserDemoPassword = "User123!";
