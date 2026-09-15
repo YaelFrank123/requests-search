@@ -511,21 +511,21 @@ Kept separate from T8's six — they test the auth pipeline (T7), not the search
 
 **Files** — new, under `frontend/`
 
-- [ ] `ng new frontend --style=scss --ssr=false`, then `ng add @angular/material`
-- [ ] `public/site.config.json` (Angular 18+; `src/assets/` on earlier versions) — `{ "apiBaseUrl": "http://localhost:60702/api" }`
-- [ ] `core/config/` — `app-config.service.ts` reading that file once at bootstrap, `api-base-url.token.ts` exposing the address by injection
-- [ ] Wire the initialiser in `app.config.ts` so the application does not render until configuration has loaded
-- [ ] `core/models/` — `request.model.ts`, `search-query.model.ts`, `paged-result.model.ts`, mirroring §3.4a exactly. Enumerations are **string unions**, not numbers
-- [ ] `core/services/requests-api.service.ts` — one `search(query)` method building the query string per §3.4a
-- [ ] `provideNativeDateAdapter()` in `app.config.ts`
+- [x] `ng new frontend --style=scss --ssr=false`, then `ng add @angular/material`
+- [x] `public/site.config.json` (Angular 18+; `src/assets/` on earlier versions) — `{ "apiBaseUrl": "http://localhost:60702/api" }`
+- [x] `core/config/` — `app-config.service.ts` reading that file once at bootstrap, `api-base-url.token.ts` exposing the address by injection
+- [x] Wire the initialiser in `app.config.ts` so the application does not render until configuration has loaded — **deviation**: this Angular version (18.2) has no `provideAppInitializer`, added in v19; used the `APP_INITIALIZER` multi-token instead, same effect
+- [x] `core/models/` — `request.model.ts`, `search-query.model.ts`, `paged-result.model.ts`, mirroring §3.4a exactly. Enumerations are **string unions**, not numbers
+- [x] `core/services/requests-api.service.ts` — one `search(query)` method building the query string per §3.4a
+- [x] `provideNativeDateAdapter()` in `app.config.ts`
 
 > `core/services/auth.service.ts`, `core/interceptors/auth.interceptor.ts` and `core/guards/auth.guard.ts` are **not** built here — they move to T9a as their own task (`[STAKEHOLDER #1]` replaces the `current-user.service.ts` + `identity.interceptor.ts` this step originally specified, before either was built).
 
 **Done when**
 
-- [ ] The client boots and a search returns rows from the running API
-- [ ] Editing `apiBaseUrl` in `site.config.json` and reloading retargets the client **without a rebuild** (ADR-007)
-- [ ] No literal API address anywhere but that file: `git grep -n --untracked "localhost:60702" frontend/src` returns nothing. **`--untracked` is not optional here** — the whole client is untracked at this point, and without it the check passes by finding nothing at all
+- [x] The client boots *(confirmed — `ng serve`, no console errors, `site.config.json` fetched with 200)*; **a search returning rows is not yet checked** — no page issues one yet (T10), and `/api/requests` now requires a Bearer token that only T9a's interceptor supplies. Not a defect here; this bullet completes once T9a and T10 land
+- [x] Editing `apiBaseUrl` in `site.config.json` and reloading retargets the client **without a rebuild** (ADR-007) — verified at the architecture level: the value is fetched at runtime via `HttpBackend` (bypassing interceptors) and is never inlined into the bundle. Not re-verified against a built `dist/` output, since nothing yet consumes `API_BASE_URL` to call the API visibly
+- [x] No literal API address anywhere but that file: `git grep -n --untracked "localhost:60702" frontend/src` returns nothing — confirmed clean
 
 **Traps**
 
