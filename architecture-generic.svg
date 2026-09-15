@@ -1,0 +1,268 @@
+<svg viewBox="0 0 1400 1800" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c62828"/>
+    </marker>
+    <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7e57c2"/>
+    </marker>
+    <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#546e7a"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="1800" fill="#ffffff"/>
+  <text x="700" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Microservices Architecture — technology-agnostic (5 domains)</text>
+  <text x="700" y="54" text-anchor="middle" font-size="12" fill="#666">no vendor / no cloud-vs-on-prem decision baked in — every box names a ROLE; red = failure-mode annotation</text>
+
+  <!-- Client -->
+  <rect x="600" y="72" width="200" height="55" rx="8" fill="#e3f2fd" stroke="#555"/>
+  <text x="700" y="94" text-anchor="middle" font-size="12.5" font-weight="600">Web / Mobile Client</text>
+  <text x="700" y="112" text-anchor="middle" font-size="10.5" fill="#333">holds access token</text>
+
+  <path d="M700,127 L700,160" stroke="#444" stroke-width="1.6" marker-end="url(#a1)"/>
+
+  <!-- Gateway -->
+  <rect x="580" y="162" width="240" height="72" rx="8" fill="#fff3e0" stroke="#555"/>
+  <text x="700" y="184" text-anchor="middle" font-size="12.5" font-weight="600">Edge / API Gateway</text>
+  <text x="700" y="201" text-anchor="middle" font-size="9.5" fill="#333">• verifies token signature + expiry</text>
+  <text x="700" y="214" text-anchor="middle" font-size="9.5" fill="#333">• routes by path to owning service</text>
+  <text x="700" y="227" text-anchor="middle" font-size="9.5" fill="#333">• rate limiting / throttling</text>
+
+  <path d="M640,234 L280,268" stroke="#444" stroke-width="1.6" marker-end="url(#a1)"/>
+  <path d="M700,234 L700,268" stroke="#444" stroke-width="1.6" marker-end="url(#a1)"/>
+  <path d="M770,234 L1130,268" stroke="#444" stroke-width="1.6" marker-end="url(#a1)"/>
+  <text x="330" y="255" font-size="9.5" fill="#444">sync API</text>
+  <text x="710" y="255" font-size="9.5" fill="#444">sync API</text>
+  <text x="1050" y="255" font-size="9.5" fill="#444">sync API</text>
+
+  <!-- Customers cluster -->
+  <rect x="40" y="268" width="440" height="150" rx="10" fill="none" stroke="#7e57c2" stroke-dasharray="5,3"/>
+  <text x="260" y="286" text-anchor="middle" font-size="12.5" fill="#7e57c2" font-weight="700">Customers Domain Service</text>
+
+  <rect x="80" y="298" width="200" height="70" rx="8" fill="#ede7f6" stroke="#555"/>
+  <text x="180" y="321" text-anchor="middle" font-size="11.5" font-weight="600">Customers API</text>
+  <text x="180" y="339" text-anchor="middle" font-size="9.5" fill="#333">• auth / issues access token</text>
+  <text x="180" y="352" text-anchor="middle" font-size="9.5" fill="#333">• customer CRUD + lookup</text>
+
+  <rect x="310" y="313" width="140" height="45" rx="6" fill="#ede7f6" stroke="#555"/>
+  <text x="380" y="333" text-anchor="middle" font-size="10.5" font-weight="600">Customers Store</text>
+  <text x="380" y="348" text-anchor="middle" font-size="9" fill="#333">(owned datastore)</text>
+  <path d="M280,333 L310,333" stroke="#444" stroke-width="1.4" marker-end="url(#a1)"/>
+
+  <!-- Requests cluster -->
+  <rect x="520" y="268" width="380" height="330" rx="10" fill="none" stroke="#26a69a" stroke-dasharray="5,3"/>
+  <text x="710" y="286" text-anchor="middle" font-size="12.5" fill="#26a69a" font-weight="700">Requests Domain Service</text>
+
+  <rect x="560" y="298" width="300" height="100" rx="8" fill="#e0f2f1" stroke="#555"/>
+  <text x="710" y="320" text-anchor="middle" font-size="11.5" font-weight="600">Requests API + Event Handler</text>
+  <text x="710" y="338" text-anchor="middle" font-size="9.5" fill="#333">• verifies token again (defense in depth)</text>
+  <text x="710" y="351" text-anchor="middle" font-size="9.5" fill="#333">• authorization by owner/assignee/role</text>
+  <text x="710" y="364" text-anchor="middle" font-size="9.5" fill="#333">• create request / change status</text>
+  <text x="710" y="377" text-anchor="middle" font-size="9.5" fill="#333">• reacts to DocumentUploaded (see below)</text>
+
+  <path d="M280,333 Q450,470 560,370" stroke="#7e57c2" stroke-width="1.6" fill="none" marker-end="url(#a3)"/>
+  <text x="420" y="450" font-size="9.5" fill="#7e57c2">sync call: fetch related</text>
+  <text x="420" y="463" font-size="9.5" fill="#7e57c2">customer data (forwarded token)</text>
+  <text x="420" y="478" font-size="9" fill="#c62828" font-weight="600">⚠ if Customers is down: needs timeout +</text>
+  <text x="420" y="490" font-size="9" fill="#c62828" font-weight="600">cached snapshot / circuit-breaker fallback</text>
+
+  <rect x="560" y="418" width="130" height="60" rx="6" fill="#e0f2f1" stroke="#555"/>
+  <text x="625" y="439" text-anchor="middle" font-size="10.5" font-weight="600">Requests Store</text>
+  <text x="625" y="455" text-anchor="middle" font-size="9" fill="#333">+ Outbox table</text>
+  <text x="625" y="469" text-anchor="middle" font-size="8.5" fill="#555">(same transaction)</text>
+  <path d="M660,398 L640,418" stroke="#444" stroke-width="1.4" marker-end="url(#a1)"/>
+
+  <rect x="720" y="418" width="150" height="60" rx="6" fill="#e0f2f1" stroke="#555"/>
+  <text x="795" y="439" text-anchor="middle" font-size="10.5" font-weight="600">Outbox Relay</text>
+  <text x="795" y="455" text-anchor="middle" font-size="9" fill="#333">(poll / CDC — impl detail)</text>
+  <text x="795" y="469" text-anchor="middle" font-size="8.5" fill="#555">publishes then marks sent</text>
+  <path d="M690,448 L720,448" stroke="#444" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a1)"/>
+
+  <text x="710" y="500" text-anchor="middle" font-size="8.5" fill="#c62828" font-weight="600">⚠ if Requests is down: DocumentUploaded events queue up</text>
+  <text x="710" y="512" text-anchor="middle" font-size="8.5" fill="#c62828" font-weight="600">durably and are processed once it's back — nothing lost</text>
+
+  <path d="M640,398 Q700,470 745,522" stroke="#c62828" stroke-width="1.6" fill="none" stroke-dasharray="5,2" marker-end="url(#a2)"/>
+  <rect x="640" y="524" width="240" height="50" rx="6" fill="#ffebee" stroke="#c62828"/>
+  <text x="760" y="543" text-anchor="middle" font-size="10" font-weight="700" fill="#c62828">Dead-Letter Queue (critical)</text>
+  <text x="760" y="558" text-anchor="middle" font-size="8.5" fill="#c62828">failed DocumentUploaded processing</text>
+
+  <!-- Documents cluster -->
+  <rect x="960" y="268" width="400" height="220" rx="10" fill="none" stroke="#5e35b1" stroke-dasharray="5,3"/>
+  <text x="1160" y="286" text-anchor="middle" font-size="12.5" fill="#5e35b1" font-weight="700">Documents Domain Service</text>
+
+  <rect x="1000" y="300" width="320" height="80" rx="8" fill="#ede7f6" stroke="#555"/>
+  <text x="1160" y="322" text-anchor="middle" font-size="11.5" font-weight="600">Documents API</text>
+  <text x="1160" y="340" text-anchor="middle" font-size="9.5" fill="#333">• upload/download, linked to requestId</text>
+  <text x="1160" y="353" text-anchor="middle" font-size="9.5" fill="#333">• no sync call INTO Requests (loose coupling)</text>
+  <text x="1160" y="366" text-anchor="middle" font-size="9.5" fill="#333">• writes metadata + outbox in one transaction</text>
+
+  <rect x="1000" y="400" width="140" height="55" rx="6" fill="#ede7f6" stroke="#555"/>
+  <text x="1070" y="421" text-anchor="middle" font-size="10" font-weight="600">Documents Store</text>
+  <text x="1070" y="435" text-anchor="middle" font-size="9" fill="#333">metadata + Outbox</text>
+  <text x="1070" y="447" text-anchor="middle" font-size="8" fill="#555">(blob storage is separate)</text>
+  <path d="M1100,380 L1080,400" stroke="#444" stroke-width="1.4" marker-end="url(#a1)"/>
+
+  <rect x="1160" y="400" width="160" height="55" rx="6" fill="#ede7f6" stroke="#555"/>
+  <text x="1240" y="421" text-anchor="middle" font-size="10" font-weight="600">Outbox Relay</text>
+  <text x="1240" y="437" text-anchor="middle" font-size="9" fill="#333">publishes DocumentUploaded</text>
+  <path d="M1140,428 L1160,428" stroke="#444" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a1)"/>
+
+  <!-- Publishers into channel -->
+  <path d="M795,478 L795,540" stroke="#444" stroke-width="1.8" marker-end="url(#a1)"/>
+  <text x="808" y="505" font-size="9.5" fill="#444">publish: RequestStatusChanged</text>
+  <text x="808" y="518" font-size="9.5" fill="#444">{eventId, requestId, status, recipients[]}</text>
+
+  <path d="M1240,455 Q1240,500 950,555" stroke="#444" stroke-width="1.8" fill="none" marker-end="url(#a1)"/>
+  <text x="1030" y="500" font-size="9.5" fill="#444">publish: DocumentUploaded</text>
+  <text x="1030" y="513" font-size="9.5" fill="#444">{eventId, documentId, requestId}</text>
+
+  <!-- Messaging Channel -->
+  <rect x="440" y="545" width="520" height="95" rx="8" fill="#fff8e1" stroke="#555"/>
+  <text x="700" y="568" text-anchor="middle" font-size="12" font-weight="700">Messaging Channel(s) — event backbone</text>
+  <text x="700" y="586" text-anchor="middle" font-size="9.5" fill="#333">durable queue/topic abstraction — any broker (message broker, log-based</text>
+  <text x="700" y="599" text-anchor="middle" font-size="9.5" fill="#333">stream, or managed pub/sub); topics: RequestStatusChanged, DocumentUploaded</text>
+  <text x="700" y="616" text-anchor="middle" font-size="9.5" fill="#333">policy: redelivery lock/visibility timeout + max delivery count per subscription</text>
+  <text x="700" y="630" text-anchor="middle" font-size="8.5" fill="#c62828" font-weight="600">⚠ if the broker itself is down: publishers must retry/buffer locally (outbox keeps retrying)</text>
+
+  <!-- channel back to Requests (consume DocumentUploaded) -->
+  <path d="M600,545 L640,398" stroke="#5e35b1" stroke-width="1.6" fill="none" stroke-dasharray="2 4" marker-end="url(#a3)"/>
+  <text x="480" y="530" font-size="9.5" fill="#5e35b1">consume: DocumentUploaded</text>
+  <text x="480" y="543" font-size="9.5" fill="#5e35b1">(may flip status when complete)</text>
+
+  <!-- channel to Notifications -->
+  <path d="M600,640 L440,690" stroke="#444" stroke-width="1.8" marker-end="url(#a1)"/>
+  <text x="470" y="670" font-size="9.5" fill="#444">consume</text>
+
+  <!-- channel to Reporting -->
+  <path d="M820,640 L1050,690" stroke="#546e7a" stroke-width="1.8" marker-end="url(#a4)"/>
+  <text x="900" y="670" font-size="9.5" fill="#546e7a">consume (separate subscription)</text>
+
+  <!-- Notifications cluster -->
+  <rect x="40" y="700" width="620" height="440" rx="10" fill="none" stroke="#ef6c00" stroke-dasharray="5,3"/>
+  <text x="350" y="718" text-anchor="middle" font-size="12.5" fill="#ef6c00" font-weight="700">Notifications Domain Service</text>
+
+  <rect x="400" y="730" width="270" height="95" rx="8" fill="#fff3e0" stroke="#555"/>
+  <text x="535" y="752" text-anchor="middle" font-size="11.5" font-weight="600">Notification Worker / Consumer</text>
+  <text x="535" y="770" text-anchor="middle" font-size="9.5" fill="#333">• idempotency check by eventId</text>
+  <text x="535" y="783" text-anchor="middle" font-size="9.5" fill="#333">• resolves recipients &amp; template</text>
+  <text x="535" y="796" text-anchor="middle" font-size="9.5" fill="#333">• hands off to delivery channel</text>
+  <text x="535" y="809" text-anchor="middle" font-size="8.5" fill="#555">on failure: nack / requeue (no ack)</text>
+
+  <path d="M400,795 Q290,850 280,418" stroke="#7e57c2" stroke-width="1.6" fill="none" stroke-dasharray="1 6" marker-end="url(#a3)"/>
+  <text x="200" y="560" font-size="9.5" fill="#7e57c2" transform="rotate(-90 200 560)">sync fallback: fetch recipient if missing</text>
+  <text x="185" y="560" font-size="9" fill="#c62828" font-weight="600" transform="rotate(-90 185 560)">⚠ same Customers-down risk — needs fallback</text>
+
+  <path d="M535,825 L535,862" stroke="#c62828" stroke-width="1.8" stroke-dasharray="5,2" marker-end="url(#a2)"/>
+  <text x="545" y="848" font-size="9.5" fill="#c62828">redelivery fails N times</text>
+
+  <rect x="400" y="866" width="270" height="55" rx="8" fill="#ffebee" stroke="#c62828"/>
+  <text x="535" y="890" text-anchor="middle" font-size="11.5" font-weight="700" fill="#c62828">Dead-Letter Queue</text>
+  <text x="535" y="907" text-anchor="middle" font-size="9.5" fill="#c62828">poisoned / undeliverable messages</text>
+
+  <path d="M460,825 L280,978" stroke="#444" stroke-width="1.8" marker-end="url(#a1)"/>
+  <text x="310" y="920" font-size="9.5" fill="#444">on success: hand off</text>
+
+  <rect x="100" y="983" width="260" height="60" rx="8" fill="#fff8e1" stroke="#555"/>
+  <text x="230" y="1006" text-anchor="middle" font-size="11.5" font-weight="600">Delivery Channel Abstraction</text>
+  <text x="230" y="1024" text-anchor="middle" font-size="9.5" fill="#333">email / SMS / push provider (any vendor)</text>
+
+  <path d="M230,1043 L110,1085" stroke="#444" stroke-width="1.6" marker-end="url(#a1)"/>
+
+  <ellipse cx="80" cy="1112" rx="70" ry="30" fill="#e8f5e9" stroke="#555"/>
+  <text x="80" y="1107" text-anchor="middle" font-size="11" font-weight="600">End User</text>
+  <text x="80" y="1122" text-anchor="middle" font-size="9.5" fill="#333">receives notification</text>
+
+  <path d="M670,893 Q900,950 900,1120" stroke="#c62828" stroke-width="1.6" fill="none" stroke-dasharray="4 3" marker-end="url(#a2)"/>
+  <text x="905" y="960" font-size="8.5" fill="#c62828">DLQ depth signal →</text>
+  <text x="905" y="972" font-size="8.5" fill="#c62828">shared Observability (below)</text>
+
+  <!-- Reporting cluster -->
+  <rect x="700" y="700" width="660" height="230" rx="10" fill="none" stroke="#546e7a" stroke-dasharray="5,3"/>
+  <text x="1030" y="718" text-anchor="middle" font-size="12.5" fill="#546e7a" font-weight="700">Reporting Domain Service</text>
+
+  <rect x="740" y="730" width="300" height="100" rx="8" fill="#eceff1" stroke="#555"/>
+  <text x="890" y="752" text-anchor="middle" font-size="11.5" font-weight="600">Reporting Consumer / API</text>
+  <text x="890" y="770" text-anchor="middle" font-size="9.5" fill="#333">• consumes RequestStatusChanged +</text>
+  <text x="890" y="783" text-anchor="middle" font-size="9.5" fill="#333">  DocumentUploaded (own subscription)</text>
+  <text x="890" y="796" text-anchor="middle" font-size="9.5" fill="#333">• never queries other services' DBs directly</text>
+  <text x="890" y="809" text-anchor="middle" font-size="9.5" fill="#333">• serves read-only dashboards / BI</text>
+
+  <rect x="1080" y="750" width="240" height="60" rx="6" fill="#eceff1" stroke="#555"/>
+  <text x="1200" y="772" text-anchor="middle" font-size="10.5" font-weight="600">Read Model Store</text>
+  <text x="1200" y="789" text-anchor="middle" font-size="9" fill="#333">CQRS-style, own copy, eventually consistent</text>
+  <path d="M1040,780 L1080,780" stroke="#444" stroke-width="1.4" marker-end="url(#a1)"/>
+
+  <text x="890" y="860" text-anchor="middle" font-size="9" fill="#546e7a" font-weight="600">⚠ if Reporting is down: dashboards go stale — no other</text>
+  <text x="890" y="874" text-anchor="middle" font-size="9" fill="#546e7a" font-weight="600">service is blocked; it drains the backlog and catches up on restart</text>
+  <text x="890" y="898" text-anchor="middle" font-size="9" fill="#333">(no consumer depends on Reporting, so it's the cheapest failure in this diagram)</text>
+
+  <path d="M1040,810 Q1080,850 1100,868" stroke="#78909c" stroke-width="1.4" fill="none" stroke-dasharray="4 3" marker-end="url(#a4)"/>
+  <rect x="1000" y="870" width="260" height="48" rx="6" fill="#eceff1" stroke="#90a4ae"/>
+  <text x="1130" y="888" text-anchor="middle" font-size="10" font-weight="700" fill="#546e7a">Dead-Letter Queue (log-only)</text>
+  <text x="1130" y="902" text-anchor="middle" font-size="8.5" fill="#546e7a">reviewed periodically, no page fired</text>
+
+  <!-- Shared cross-cutting Observability (not owned by any single domain) -->
+  <text x="700" y="1085" text-anchor="middle" font-size="11.5" fill="#455a64" font-weight="700">Observability is a CROSS-CUTTING concern, not part of any one domain:</text>
+
+  <path d="M180,368 Q120,700 300,1128" stroke="#455a64" stroke-width="1.3" fill="none" stroke-dasharray="2 4" marker-end="url(#a4)"/>
+  <text x="130" y="700" font-size="8" fill="#455a64" transform="rotate(-90 130 700)">Customers: health-check</text>
+
+  <path d="M760,574 Q580,850 460,1128" stroke="#c62828" stroke-width="1.4" fill="none" stroke-dasharray="2 4" marker-end="url(#a2)"/>
+  <text x="500" y="960" font-size="8" fill="#c62828">Requests DLQ (critical) — pages on-call</text>
+
+  <path d="M1240,437 Q1100,700 640,1128" stroke="#455a64" stroke-width="1.3" fill="none" stroke-dasharray="2 4" marker-end="url(#a4)"/>
+  <text x="900" y="1000" font-size="8" fill="#455a64">Documents: relay lag + error rate</text>
+
+  <path d="M1130,918 Q1000,1050 800,1128" stroke="#90a4ae" stroke-width="1.3" fill="none" stroke-dasharray="2 4" marker-end="url(#a4)"/>
+  <text x="900" y="1050" font-size="8" fill="#78909c">Reporting DLQ (log-only) — no page</text>
+
+  <rect x="250" y="1130" width="900" height="60" rx="8" fill="#eceff1" stroke="#455a64"/>
+  <text x="700" y="1152" text-anchor="middle" font-size="12" font-weight="700" fill="#455a64">Observability &amp; Alerting (shared, one stack for all 5 domains)</text>
+  <text x="700" y="1170" text-anchor="middle" font-size="9.5" fill="#455a64">metrics + logs + traces from every service; one rule set, e.g. "any DLQ depth &gt; 0" or "consumer lag &gt; threshold"</text>
+  <text x="700" y="1183" text-anchor="middle" font-size="8.5" fill="#455a64" font-style="italic">(any stack: Prometheus/Grafana/Alertmanager, CloudWatch, Azure Monitor — swappable, same as the broker)</text>
+
+  <path d="M700,1190 L700,1225" stroke="#c62828" stroke-width="1.8" marker-end="url(#a2)"/>
+
+  <ellipse cx="700" cy="1252" rx="80" ry="30" fill="#ffebee" stroke="#c62828"/>
+  <text x="700" y="1247" text-anchor="middle" font-size="11" font-weight="600" fill="#c62828">On-call / Admin</text>
+  <text x="700" y="1263" text-anchor="middle" font-size="9.5" fill="#c62828">inspect + replay, any domain</text>
+
+  <!-- Legend / notes -->
+  <rect x="40" y="1310" width="1320" height="440" rx="10" fill="#fafafa" stroke="#ccc"/>
+  <text x="60" y="1338" font-size="13.5" font-weight="700" fill="#1a1a1a">What stays fixed regardless of the chosen stack</text>
+
+  <text x="60" y="1364" font-size="11" fill="#333" font-weight="600">1. Transactional Outbox in every publishing service (Requests, Documents)</text>
+  <text x="75" y="1381" font-size="10.3" fill="#444">state update + outbox row are written in ONE local transaction — the event can never be silently lost,</text>
+  <text x="75" y="1396" font-size="10.3" fill="#444">independent of which broker/relay mechanism ships it (polling worker, CDC/log-tailing, or a transactional-outbox library).</text>
+
+  <text x="60" y="1422" font-size="11" fill="#333" font-weight="600">2. Async hand-off between domains, never a hard synchronous dependency</text>
+  <text x="75" y="1439" font-size="10.3" fill="#444">Requests, Documents, Notifications and Reporting only talk to each other through events. None of them blocks waiting</text>
+  <text x="75" y="1454" font-size="10.3" fill="#444">for another to be reachable.</text>
+
+  <text x="60" y="1480" font-size="11" fill="#333" font-weight="600">3. At-least-once delivery + idempotent consumers</text>
+  <text x="75" y="1497" font-size="10.3" fill="#444">Every broker/queue technology can redeliver a message; each consumer (Notifications, Requests, Reporting) de-dupes by</text>
+  <text x="75" y="1512" font-size="10.3" fill="#444">eventId regardless of transport.</text>
+
+  <text x="60" y="1538" font-size="11" fill="#333" font-weight="600">4. Bounded retry → Dead-letter → Alert → Manual replay — a per-CONSUMER pattern, not per-service</text>
+  <text x="75" y="1555" font-size="10.3" fill="#444">Any role that consumes messages needs a DLQ: Notifications and Requests (consuming DocumentUploaded) are critical —</text>
+  <text x="75" y="1570" font-size="10.3" fill="#444">their DLQ pages on-call. Reporting's DLQ is log-only (reviewed periodically, no page) since nothing depends on it staying</text>
+  <text x="75" y="1584" font-size="10.3" fill="#444">fresh. Pure publishers (the Outbox Relays) don't need one — an unsent row just gets retried on the next poll, it's never "dead".</text>
+
+  <text x="60" y="1596" font-size="11" fill="#333" font-weight="600">5. Not every dependency is async — sync calls still exist and need an explicit failure policy</text>
+  <text x="75" y="1613" font-size="10.3" fill="#444">Requests→Customers and Notifications→Customers are synchronous reads (marked ⚠ above). A microservice going down</text>
+  <text x="75" y="1628" font-size="10.3" fill="#444">degrades gracefully ONLY where the link is async (queue absorbs the outage). Where the link is sync, the caller needs its</text>
+  <text x="75" y="1643" font-size="10.3" fill="#444">own policy — timeout + circuit breaker, and either a cached/last-known snapshot or a documented degraded behavior —</text>
+  <text x="75" y="1658" font-size="10.3" fill="#444">otherwise a Customers outage silently cascades into Requests and Notifications failing too.</text>
+
+  <text x="60" y="1684" font-size="11" fill="#333" font-weight="600">6. Failure blast radius is not uniform across the 5 domains</text>
+  <text x="75" y="1701" font-size="10.3" fill="#444">Reporting going down: nothing else notices (cheapest). Notifications going down: delayed notifications only, protected by</text>
+  <text x="75" y="1716" font-size="10.3" fill="#444">DLQ+alert. Requests or Documents going down: their own inbound writes/API fail immediately (normal sync failure), but</text>
+  <text x="75" y="1731" font-size="10.3" fill="#444">already-published events are safe in the channel. Customers going down is the riskiest because two other services call it</text>
+  <text x="75" y="1746" font-size="10.3" fill="#444">synchronously — this is the one dependency in the diagram that most needs an explicit resilience decision.</text>
+
+  <text x="60" y="1768" font-size="10.5" fill="#666" font-style="italic">Decision left open on purpose: cloud-managed vs. self-hosted broker/storage/observability stack, and which product, is an infra/cost/ops choice — swappable without touching service code.</text>
+</svg>
