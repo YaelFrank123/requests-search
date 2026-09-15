@@ -55,6 +55,8 @@ These constrain every decision below.
 
 **Decision: B.**
 
+> **Terminology, because the word is doing two jobs.** "Authentication scheme" here means the framework's authentication *pipeline* — a handler, `[Authorize]`, and a 401 when identity is absent. It is a transport for an identity the caller asserts. **No credential is verified**, and nothing here contradicts authentication being out of scope in `requirements.md`. What is in scope is *authorization*: deciding what a given identity may see.
+
 **The counter-argument, recorded as required by the specification.** A strict reading says enforcement against an identity the client asserts is hollow: anyone may send `X-Is-Admin: true`. This is true, and it is the reason option C exists. It was rejected because the brief asks for *permission enforcement*, not *identity verification*, and because the derivation rule adopted in `requirements.md` admits only **necessary** consequences — authorization can be enforced against a trusted identity source without building a sign-in mechanism. In a larger system identity would arrive from an identity provider outside this service entirely.
 
 **Consequences.**
@@ -95,18 +97,22 @@ These constrain every decision below.
 ### ADR-006 — Partial-match implementation
 *Serves `REQ-F-001`, `REQ-N-001`*
 
-**Context.** `REQ-F-001` requires a **case-insensitive** match at **any position**. Two translation paths exist in EF Core on SQLite, and they do not behave alike:
+**Context.** `REQ-F-001` requires a match at **any position**, and explicitly makes **case handling a non-requirement**. Two translation paths exist in EF Core on SQLite and they do not behave alike:
 
-| Expression | Translates to | Case behaviour |
-|---|---|---|
-| `x.RequestNumber.Contains(v)` | `instr(...) > 0` | **Case-sensitive** — fails the acceptance criterion |
-| `EF.Functions.Like(x.RequestNumber, "%" + v + "%")` | `LIKE` | **Case-insensitive for ASCII** — satisfies it |
+| Expression | Translates to | Case behaviour on SQLite | Wildcards in user input |
+|---|---|---|---|
+| `x.RequestNumber.Contains(v)` | `instr(...) > 0` | Case-sensitive | None — matched literally |
+| `EF.Functions.Like(x.RequestNumber, "%" + v + "%")` | `LIKE` | Case-insensitive for ASCII | `%` and `_` are wildcards and **must be escaped** |
 
-**Decision: `EF.Functions.Like` with `%`-wrapping.** `string.Contains` is not used for this filter.
+**Decision: `string.Contains`.**
 
-**Two consequences that must be handled in code, not assumed away.**
-1. **User input must be escaped.** `%` and `_` are wildcards in `LIKE`; a user typing `%` would otherwise match every row. The value is escaped and an `ESCAPE` clause is supplied.
-2. **A leading wildcard is not sargable.** This filter scans; no index can serve it. This is the accepted cost of reading "partial search" literally. The production path — a trigram index or a dedicated search engine — is noted in the README.
+**Rationale.** With case-insensitivity out of the requirement, `LIKE` buys a behaviour nobody asked for and charges for it: every user-supplied value would need escaping for `%` and `_` plus an `ESCAPE` clause, or a user typing `%` matches every row. `Contains` has no wildcard semantics at all, so that class of defect does not exist.
+
+The earlier choice of `LIKE` also satisfied case-insensitivity **by provider accident** rather than by intent: SQLite's `LIKE` happens to be case-insensitive for ASCII. On PostgreSQL `LIKE` is case-sensitive and would need `ILIKE`; on SQL Server it depends on collation. A requirement upheld that way breaks on a provider swap with no compile error and no exception — which is the strongest reason to withdraw it rather than to keep leaning on it.
+
+**Consequences.**
+1. **Case behaviour follows the store.** On SQLite `instr` is case-sensitive. `REQ-F-001` depends on neither behaviour, which is the point of stating it as unspecified. The README records it as an assumption (`REQ-D-005`).
+2. **Not sargable.** A substring search scans; no index can serve it. This is unchanged from the `LIKE` option — both scan. The production path (a trigram index, a normalised search column, or a dedicated search engine) is noted in the README.
 
 ### ADR-007 — Source of the API base URL
 *Serves `REQ-D-002`, `REQ-F-107`*
@@ -127,7 +133,7 @@ It is served as a static asset, read once during bootstrap by an application ini
 
 The justification stands on its own: an endpoint address is configuration, not code. It also makes the client **symmetric with the server**, which already reads its connection string and CORS origins from `appsettings` rather than from source — the same rule applied on both sides.
 
-> Option B is not a poor choice and would not be a defect at this scope. C is selected because configuration at run time was asked for, not because B is inadequate.
+> Option B is not a poor choice and would not be a defect at this scope. C is selected because **runtime configuration is a stakeholder requirement for this project** — it is not asked for by the brief, and B is not inadequate. Were that requirement absent, B would be the correct choice here, and the move between them is contained: the token stays and only its provider changes, from a constant to an initialiser.
 
 **Consequences.**
 - The application does not render until configuration has loaded. A failure to load is a startup error, **not** a silent fallback to some default address.
@@ -177,9 +183,13 @@ Two round trips — count, then page — are expected and correct.
 
 **Indexes in `OnModelCreating`** (`REQ-N-001`), shaped to the queries actually issued: `(OwnerId, CreatedAt)` and `(AssignedToUserId, CreatedAt)` for the permission path combined with the default ordering; single-column indexes on `Status`, `RequestType`, `CreatedAt`; `RequestNumber` for exact lookups, acknowledging that `REQ-F-001` will not use it (ADR-006).
 
+**UTC value converter** (`REQ-N-003`, `REQ-F-003`): SQLite has no date type, so a `DateTime` returns from the store with `Kind = Unspecified`. Both `DateTime` properties on `Request` are configured in `OnModelCreating` with a conversion that writes the value unchanged and restores the kind on read — `v => v` on write, `v => DateTime.SpecifyKind(v, DateTimeKind.Utc)` on read. The assertion is legitimate because only UTC is ever written (`REQ-N-003`). Without it the JSON response omits the `Z` suffix and every browser reads the timestamp as local time, while filtering still works — so nothing fails loudly. Because the write side is the identity function, the stored representation is unchanged and the indexes on `CreatedAt` are unaffected. *Alternative considered:* storing ticks as `long`, rejected because it makes the database file unreadable by hand and buys nothing here.
+
 **Sort mapping** (`REQ-F-005`): a static map from permitted sort keys to typed expressions. No reflection-based dynamic ordering. A key absent from the map is a validation failure under `REQ-F-007`, not a silent fallback. The default ordering is `CreatedAt` descending, with `Id` as a tiebreaker so it is deterministic as the requirement demands.
 
 **Seeding** (`REQ-N-001`): the 500-row seed is replaced by a bulk insert of **200,000** rows executed as a single `INSERT … SELECT` over a recursive CTE, which completes in about a second. Row-by-row `AddRange` at this volume takes minutes and is not used. *200,000 rows demonstrate the behaviour; the design is what holds at millions, and the README says exactly that rather than implying the seed proves it.* The generated database file is not committed.
+
+Two rules that the move to a persisted store makes load-bearing. **The existing empty-check guard is preserved** — with InMemory it was decorative because every run started empty; with a file it is the only thing preventing a second startup from adding another 200,000 rows. And **seeded dates are relative to the moment of seeding**, so the data ages with the file: no test and no README example may assert against an absolute date. They assert against what the seed actually produced, or they filter by a range derived at run time.
 
 ### 3.4 API
 *`REQ-F-007`, `REQ-F-010`, `REQ-F-101`–`REQ-F-106`*
@@ -216,7 +226,9 @@ This is the seam between the two sides. Both §3.4 and §3.5 cite it rather than
 | `page` | integer ≥ 1, default **1** | `2` | `REQ-N-002` |
 | `pageSize` | integer 1–**100**, default **25** | `25` | `REQ-N-002` |
 
-Enumerations are accepted and returned **by name**, never by number (see `JsonStringEnumConverter`, §3.4). All timestamps in and out are UTC (`REQ-N-003`).
+Enumerations are accepted and returned **by name**, never by number (see `JsonStringEnumConverter`, §3.4). All timestamps in and out are UTC (`REQ-N-003`) and are serialised with the `Z` suffix, which depends on the value converter in §3.3.
+
+An enumeration value that binds but is not a defined member — `status=99`, for example — is rejected with **400** under `REQ-F-007`. The query-string binder accepts numeric values for enums without checking that they are defined, so this is enforced in validation (ADR-004), not by binding.
 
 **200 response**
 
@@ -241,6 +253,8 @@ Enumerations are accepted and returned **by name**, never by number (see `JsonSt
 ```
 
 `totalCount` is the count **after** the permission restriction (`REQ-F-008`). It is what the paginator binds to, and it is never the length of `items`.
+
+A page beyond the last returns `200` with `items: []` and the correct `totalCount` (`REQ-N-002`), so the client recovers by navigating back rather than by handling an error.
 
 **400 response** — `ValidationProblemDetails`, produced by `[ApiController]` from `IValidatableObject` (ADR-004). The field-level detail is what `REQ-F-007` requires and what the UI renders in its error state (`REQ-F-105`).
 
@@ -324,21 +338,26 @@ app.routes.ts, app.config.ts, app.component.*
 ### 3.6 Tests
 *`REQ-T-001`*
 
-Five tests against the real repository over SQLite in-memory, each with a distinct database so they cannot leak into one another:
+Six tests. Five run against the real repository over SQLite in-memory, each with its own database so they cannot leak into one another. The sixth tests the query object's validation directly and needs no database.
 
-| Test | Covers |
-|---|---|
-| A regular user sees only owned or assigned requests | `REQ-F-008` |
-| An administrator sees all requests | `REQ-F-009` |
-| An inverted date range is rejected | `REQ-F-007` |
-| Multiple statuses filter correctly | `REQ-F-002` |
-| Paging returns the right rows and the right total count | `REQ-N-002` |
+| Test | Covers | Level |
+|---|---|---|
+| A regular user sees only owned or assigned requests | `REQ-F-008` | repository |
+| An administrator sees all requests | `REQ-F-009` | repository |
+| A value matching mid-string finds the request — `000123` finds `REQ-000123` | `REQ-F-001` | repository |
+| Multiple statuses filter correctly | `REQ-F-002` | repository |
+| Paging returns the right rows and the right total count | `REQ-N-002` | repository |
+| An inverted date range is rejected | `REQ-F-007` | validation |
+
+**Why these six.** The two permission tests are the decisive acceptance test named in `REQ-F-010` — the same search as two identities must return different sets and different totals. The mid-string test catches a `StartsWith` written by reflex, the single most likely silent defect in the feature (ADR-006). The paging test asserts that `totalCount` is the filtered, permission-restricted count and not `items.Length`, the defect that makes the paginator show one page. The multi-status test is the weakest of the six — a plain `IN` clause rarely fails quietly — but `REQ-F-002` is an explicit requirement of the brief, and leaving it with no coverage at all is a worse trade than one cheap test.
 
 ---
 
 ## 4. Explicit design constraints
 
 Each of these prevents a specific defect. They are listed because every one of them is easy to get wrong and silent when wrong.
+
+*On the `Enum.IsDefined` row: the check validates that the **value** is defined, not that the **wire format** was a name. `status=2` therefore passes and binds to `InProgress`. That is sufficient for `REQ-F-007` and cheaper than policing the format.*
 
 | Constraint | Protects | Failure if ignored |
 |---|---|---|
@@ -347,11 +366,14 @@ Each of these prevents a specific defect. They are listed because every one of t
 | The status property carries `[FromQuery(Name = "status")]` if the query-string name differs from the property name | `REQ-F-002` | Values arrive unbound |
 | Date upper bound is `CreatedAt < end.Date.AddDays(1)` | `REQ-F-003` | Everything created on the end day is excluded |
 | Incoming date bounds are normalised to UTC | `REQ-F-003`, `REQ-N-003` | A local-midnight boundary shifts results by hours |
-| `EF.Functions.Like` with escaped input, not `string.Contains` | `REQ-F-001` | Case-sensitive matching; unescaped `%` matches everything |
+| `DateTime` properties carry a converter restoring `DateTimeKind.Utc` on read | `REQ-N-003`, `REQ-F-003` | SQLite returns `Unspecified`, the response omits `Z`, and the browser shifts every displayed timestamp to local time. Filtering still works, so nothing fails loudly |
+| `string.Contains` for the partial match, **not** `EF.Functions.Like` | `REQ-F-001` | `LIKE` treats `%` and `_` in user input as wildcards, so a user typing `%` matches every row. If `LIKE` is ever reintroduced, the value must be escaped and an `ESCAPE` clause supplied (ADR-006) |
 | `JsonStringEnumConverter` registered | `REQ-F-103` | Enumerations render as integers |
 | Angular Material's date adapter is provided | `REQ-F-101` | The date-range input fails at runtime |
 | The results table is **not** bound to the component library's built-in client-side sorting and paging source | `REQ-N-001`, `REQ-N-002` | Sorting and paging silently happen on one page of data |
 | Paginator length comes from the response total | `REQ-N-002` | Navigation shows one page regardless of the real result size |
+| `RequestSearchQuery.Validate` checks `Enum.IsDefined` for every supplied `status` and for `requestType` | `REQ-F-002`, `REQ-F-004`, `REQ-F-007` | The binder accepts any integer for an enum, so `status=99` binds, matches nothing, and returns an empty page with `200` instead of a `400` — the exact silent absorption `REQ-F-007` forbids |
+| After any model change, the existing database file is deleted before the next run | `REQ-N-001` | `EnsureCreated()` does nothing when the file already exists, so a new column or index is never created and the failure surfaces later as a confusing runtime error |
 
 ---
 
@@ -363,7 +385,7 @@ Dependency-ordered. Each step names what it serves and how it is verified.
 |---|---|---|---|
 | 1 | Solution file; switch provider to SQLite; `EnsureCreated`; indexes in `OnModelCreating`; 200k bulk seed | `REQ-N-001`, ADR-001 | Application starts; database file is created and populated |
 | 2 | `ICurrentUser`, `PagedResult<T>`, `RequestSearchQuery` with validation | `REQ-F-001`–`REQ-F-007`, `REQ-N-002` | Compiles; validation rules reviewed against `REQ-F-007`'s table |
-| 3 | Replace `IRequestRepository` / `IRequestService` / `RequestService` | `REQ-F-010` | No unfiltered data path remains anywhere |
+| 3 | Replace `IRequestRepository` / `IRequestService` / `RequestService`. **In the same step, delete the two existing tests and `FakeRequestRepository`** — they implement and call the removed `GetAllAsync`, so the solution does not build until they go. Replacements arrive in step 6 | `REQ-F-010` | `dotnet build` succeeds; no unfiltered data path remains anywhere |
 | 4 | `RequestRepository.SearchAsync`, sort mapping | `REQ-F-001`–`REQ-F-009`, `REQ-N-001` | `EXPLAIN QUERY PLAN` shows index use on the permission path |
 | 5 | Authentication scheme, `ClaimsCurrentUserAccessor`, controller, `Program.cs`, `appsettings` | `REQ-F-010`, `REQ-F-007` | No identity → 401; regular and administrator identities return different totals |
 | 6 | Five tests | `REQ-T-001` | `dotnet test` green |
@@ -377,11 +399,11 @@ Dependency-ordered. Each step names what it serves and how it is verified.
 
 | Requirement | Design section |
 |---|---|
-| `REQ-F-001` | ADR-006, §3.3, §4 |
-| `REQ-F-002`, `REQ-F-004`, `REQ-F-006` | §3.3, §4 |
-| `REQ-F-003` | §3.3, §4 |
-| `REQ-F-005` | §3.3 |
-| `REQ-F-007` | ADR-003, ADR-004, §3.4 |
+| `REQ-F-001` | ADR-006, §3.3, §3.4a, §4 |
+| `REQ-F-002`, `REQ-F-004`, `REQ-F-006` | §3.3, §3.4a, §4 |
+| `REQ-F-003` | §3.3, §3.4a, §4 |
+| `REQ-F-005` | §3.3, §3.4a |
+| `REQ-F-007` | ADR-003, ADR-004, §3.4, §3.4a |
 | `REQ-F-008`, `REQ-F-009` | §3.2, §3.3 |
 | `REQ-F-010` | ADR-002, §3.2, §3.4 |
 | `REQ-F-101`–`REQ-F-106` | ADR-005, §3.4a, §3.5 |

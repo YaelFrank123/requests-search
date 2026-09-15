@@ -34,9 +34,11 @@ WHEN a search request supplies a Request Number search value
 THE SYSTEM SHALL return those requests the user is permitted to see whose Request Number **contains the value at any position in the string**.
 
 **Acceptance criteria**
-- Matching is **case-insensitive** — `req-000123` and `REQ-000123` return the same results. `[CLARIFIED #3]`
-- The value `000123` matches `REQ-000123`, i.e. a match in the middle of the string, not only at its start.
+- The value `000123` matches `REQ-000123`, i.e. a match in the middle of the string, not only at its start. `[CLARIFIED #3]`
 - WHEN the value is absent or empty THE SYSTEM SHALL not apply this filter at all.
+- **Case handling is not a requirement.** THE SYSTEM SHALL NOT be required to match across differing letter case, and SHALL NOT be required to distinguish it either. The behaviour follows the data store's default collation and is recorded as an assumption in the README (`REQ-D-005`).
+
+> **Why case-insensitivity was withdrawn** (recorded because it is a decision, not an omission): request numbers are stored in a single fixed uppercase format, so the realistic search value is the numeric portion, where case cannot arise. Guaranteeing case-insensitivity *portably* costs either a provider-specific branch (`LIKE` on SQLite, `ILIKE` on PostgreSQL, collation-dependent on SQL Server) or a normalised lowercase column carrying its own index — a real and permanent cost for a case that does not occur. The requirement is therefore stated as **unspecified** rather than as case-sensitive, so that no provider's default can violate it.
 
 ### REQ-F-002 — Filter by Status, single or multiple
 *Source: Part A → Backend → "Status, single or multiple"*
@@ -214,6 +216,7 @@ THE SYSTEM SHALL return search results in pages.
 - THE SYSTEM SHALL include, in the response, the **total number of matching requests the user is permitted to see**, so the client can present page navigation.
 - WHEN page or page size are not specified THE SYSTEM SHALL apply defined default values.
 - WHEN the page size exceeds the configured maximum THE SYSTEM SHALL reject under `REQ-F-007`.
+- WHEN the requested page lies beyond the last page of results THE SYSTEM SHALL return an empty result set with the correct total count, **not** an error. A structurally valid page number that happens to contain no rows is an empty result, not invalid input, and is therefore outside `REQ-F-007`.
 - *The default and maximum values themselves are fixed in `design-feature.md`, not here.* `[CLARIFIED #7]`
 
 > **Derivation rationale:** paging is not mentioned in the brief. But `REQ-N-001` posits millions of rows, and an endpoint returning every matching row is not implementable under that constraint — not in memory, not in bandwidth, and not in the user interface. This is a **necessary** consequence, not a desirable addition.
@@ -344,7 +347,7 @@ Both requirements above pass this rule. **Authentication was tested against it a
 
 | Topic | Reason |
 |---|---|
-| **Authentication** — sign-in, password handling, token issuance | The brief requires *permission enforcement* (`REQ-F-010`) and never mentions sign-in, passwords or tokens. The counter-argument — "enforcement against an unverified identity is hollow" — was weighed and explicitly rejected; it is recorded as an alternative in ADR-002 and feeds `REQ-D-006`. `[CLARIFIED #1]` |
+| **Authentication** — sign-in, password handling, token issuance | The brief requires *permission enforcement* (`REQ-F-010`) and never mentions sign-in, passwords or tokens. The counter-argument — "enforcement against an unverified identity is hollow" — was weighed and explicitly rejected; it is recorded as an alternative in ADR-002 and feeds `REQ-D-006`. Note that `design-feature.md` ADR-002 does register an ASP.NET Core *authentication scheme*; that is the framework pipeline used to carry an asserted identity and produce a 401 when it is missing, not verification of a credential. `[CLARIFIED #1]` |
 | Actual deployment and infrastructure code | Explicitly excluded by the brief (Part C) |
 | Creating, editing or deleting requests | The brief adds **search and filtering** to an existing display capability only |
 | User and customer management | Not required; owner, assignee and customer are handled as identifiers only |
@@ -359,7 +362,7 @@ Eight ambiguities found in the brief and resolved **before** this specification 
 |---|---|---|---|
 | 1 | Is authentication in scope? | **No** — authorization only | `REQ-F-010`, Out of scope |
 | 2 | Tests marked "optional" | **Included** — a focused set | `REQ-T-001` |
-| 3 | Meaning of "partial search" | **Contains, at any position, case-insensitive.** Prefix matching was considered and rejected: every request number shares a fixed prefix, so a prefix search would force the user to type that prefix and would drain "partial" of meaning | `REQ-F-001` |
+| 3 | Meaning of "partial search" | **Contains, at any position. Case handling unspecified.** Prefix matching was considered and rejected: every request number shares a fixed prefix, so a prefix search would force the user to type that prefix and would drain "partial" of meaning. Case-insensitivity was considered and rejected: it cannot be guaranteed across providers without extra machinery, and the fixed uppercase format means it buys nothing | `REQ-F-001` |
 | 4 | Upper bound of the date range | **Covers the whole end day** | `REQ-F-003` |
 | 5 | Time zone | **UTC as the source of truth** | `REQ-F-003`, `REQ-N-003` |
 | 6 | Scope of "invalid input" | **Strict policy** — explicit rejection in every case, including unknown sort field and oversized page | `REQ-F-007` |
@@ -374,20 +377,21 @@ The design column is filled in as the design documents are written. **A requirem
 
 | Requirement | Origin | Design section |
 |---|---|---|
-| `REQ-F-001` | Part A — Backend | `design-feature.md` ADR-006, §3.3, §4 |
-| `REQ-F-002`, `REQ-F-004`, `REQ-F-006` | Part A — Backend | `design-feature.md` §3.3, §4 |
-| `REQ-F-003` | Part A — Backend | `design-feature.md` §3.3, §4 |
-| `REQ-F-005` | Part A — Backend | `design-feature.md` §3.3 |
-| `REQ-F-007` | Part A — Backend | `design-feature.md` ADR-003, ADR-004, §3.4 |
+| `REQ-F-001` | Part A — Backend | `design-feature.md` ADR-006, §3.3, §3.4a, §4 |
+| `REQ-F-002`, `REQ-F-004`, `REQ-F-006` | Part A — Backend | `design-feature.md` §3.3, §3.4a, §4 |
+| `REQ-F-003` | Part A — Backend | `design-feature.md` §3.3, §3.4a, §4 |
+| `REQ-F-005` | Part A — Backend | `design-feature.md` §3.3, §3.4a |
+| `REQ-F-007` | Part A — Backend | `design-feature.md` ADR-003, ADR-004, §3.4, §3.4a |
 | `REQ-F-008`, `REQ-F-009` | Part A — Permissions | `design-feature.md` §3.2, §3.3 |
 | `REQ-F-010` | Part A — Permissions | `design-feature.md` ADR-002, §3.2, §3.4 |
-| `REQ-F-101`–`REQ-F-106` | Part A — Frontend | `design-feature.md` ADR-005, §3.5 |
-| `REQ-F-107` | Part A — Frontend | `design-feature.md` ADR-005 |
+| `REQ-F-101`–`REQ-F-106` | Part A — Frontend | `design-feature.md` ADR-005, §3.4a, §3.5 |
+| `REQ-F-107` | Part A — Frontend | `design-feature.md` ADR-005, ADR-007 |
 | `REQ-N-001` | Part A — Performance | `design-feature.md` ADR-001, §3.3 |
-| `REQ-N-002` | `[DERIVED]` | `design-feature.md` ADR-003, §3.3, §3.5 |
-| `REQ-N-003` | `[DERIVED]` | `design-feature.md` §3.3, §4 |
+| `REQ-N-002` | `[DERIVED]` | `design-feature.md` ADR-003, §3.3, §3.4a, §3.5 |
+| `REQ-N-003` | `[DERIVED]` | `design-feature.md` §3.3, §3.4a, §4 |
 | `REQ-T-001` | Part A — Tests | `design-feature.md` §3.6 |
-| `REQ-D-002`–`REQ-D-012` | Submission | `design-feature.md` §5 step 8 |
+| `REQ-D-002` | Submission | `design-feature.md` ADR-007, §5 step 8 |
+| `REQ-D-003`–`REQ-D-012` | Submission | `design-feature.md` §5 step 8 |
 | `REQ-A-001`, `REQ-A-002` | Part B | *pending — `design-architecture-cloud.md`* |
 | `REQ-C-001` | Part C | *pending — `design-architecture-cloud.md`* |
 | `REQ-D-001`, `REQ-D-013`, `REQ-D-014` | Submission | *`REQ-D-001` on completion of §5; `REQ-D-013` pending Part B/C; `REQ-D-014` = this directory* |
