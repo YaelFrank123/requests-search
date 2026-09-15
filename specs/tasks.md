@@ -112,16 +112,16 @@ dotnet sln add src/Requests.Domain/Requests.Domain.csproj src/Requests.Applicati
 
 - [ ] Swap the provider package, then `UseSqlite(configuration.GetConnectionString("RequestsDb"))`
 - [ ] `appsettings.json`: `ConnectionStrings:RequestsDb` = `Data Source=requests.db`, and `Cors:AllowedOrigins` = `[ "http://localhost:4200" ]` (consumed in T7 — created here so the file is written once)
-- [ ] `OnModelCreating` — the six indexes of §3.3, shaped to the queries actually issued:
+- [ ] `OnModelCreating` — the four indexes of §3.3, shaped to the queries actually issued:
 
 ```csharp
 b.HasIndex(x => new { x.OwnerId, x.CreatedAt });          // permission path + default order
 b.HasIndex(x => new { x.AssignedToUserId, x.CreatedAt }); // permission path + default order
-b.HasIndex(x => x.Status);
-b.HasIndex(x => x.RequestType);
 b.HasIndex(x => x.CreatedAt);
 b.HasIndex(x => x.RequestNumber);                         // exact lookups; REQ-F-001 will not use it (ADR-006)
 ```
+
+> **Do not add single-column indexes on `Status` or `RequestType`**, and if they appear from habit, delete them. §3.3 records the measurement: with them present the planner abandons the permission path the moment a status filter is applied, and the filtered search costs 41 ms instead of 0.4 ms.
 
 - [ ] `OnModelCreating` — the UTC converter on **both** `DateTime` properties:
 
@@ -143,6 +143,7 @@ b.Property(x => x.UpdatedAt).HasConversion(utc);
 **Traps**
 
 - **`EnsureCreated()` must precede `db.Requests.Any()`.** Reversed, the seeder's own guard throws `no such table: Requests`.
+- **`Data Source=requests.db` resolves against the process working directory, not the project.** Launching from the repo root and from `src/Requests.Api` therefore builds two separate databases, each seeded once — and the symptom is indistinguishable from the guard failing. Anchor it instead: `Path.Combine(builder.Environment.ContentRootPath, "requests.db")`, so the file follows the application rather than the shell.
 - **After any model change, delete `requests.db` before the next run** (§4, last row). `EnsureCreated()` does nothing when the file exists, so a new index is silently never created.
 - **The converter's write side is the identity function.** Anything else rewrites stored values and invalidates the `CreatedAt` indexes.
 - Without the converter nothing fails loudly: filtering still works, the response just loses its `Z` and every browser shifts the displayed time (§4).
@@ -166,8 +167,8 @@ WITH RECURSIVE seq(i) AS (
 )
 SELECT printf('REQ-%06d', i),
        (i % 100) + 1,
-       (i % 5) + 1,
-       CASE WHEN i % 7 = 0 THEN NULL ELSE ((i + 1) % 5) + 1 END,
+       (i % 1000) + 1,
+       CASE WHEN i % 7 = 0 THEN NULL ELSE ((i + 1) % 1000) + 1 END,
        (i % 4) + 1,
        ((i / 4) % 4) + 1,
        datetime('now', '-' || (i % 365) || ' days'),
@@ -177,16 +178,18 @@ FROM seq;
 
 **Done when**
 
-- [ ] First start completes in roughly a second and `SELECT COUNT(*) FROM Requests` returns `200000`
+- [ ] First start completes in **a few seconds** — about seven, measured; every row also updates four indexes — and `SELECT COUNT(*) FROM Requests` returns `200000`
 - [ ] **Second start leaves the count unchanged** — this is the guard doing its job
+- [ ] `SELECT COUNT(*) FROM Requests WHERE OwnerId = 1 OR AssignedToUserId = 1` returns **372**. A number in the tens of thousands means the owner spread was left at the supplied seed's five identifiers, and the permission path is no longer selective (§3.3)
 
 **Traps**
 
 - **Row-by-row `AddRange` at this volume takes minutes.** One statement, not 200,000.
+- **The owner spread is a thousand, not five.** It is the single biggest factor in every measurement in T6, and it is the easiest thing to copy unchanged from the supplied `DbSeeder`.
 - **Seeded dates are relative to the moment of seeding** (`datetime('now', …)`), so the data ages with the file. **No test and no README example may assert against an absolute date** (§3.3).
 - `datetime()` emits `YYYY-MM-DD HH:MM:SS`, which is what EF's SQLite reader expects. A hand-rolled ISO string with a `T` or a `Z` is not.
 
-> **Useful consequence for demos:** owners and assignees fall in 1–5. `X-User-Id: 1` sees a large subset, `X-User-Id: 9` sees **nothing** — which is the empty state of `REQ-F-106` on demand, and the decisive contrast of `REQ-F-010` against `X-Is-Admin: true`.
+> **Useful consequence for demos:** every identifier from 1 to 1000 owns exactly 200 requests, so `X-User-Id: 1` sees **372** (200 owned, the rest assigned) while `X-Is-Admin: true` sees **200,000** — the decisive contrast of `REQ-F-010`, on one screen. Any identifier **above 1000** — use `X-User-Id: 5000` — owns nothing and sees nothing, which is the empty state of `REQ-F-106` on demand. Note this differs from the supplied seed, where ids 1–5 held everything.
 
 ---
 
@@ -284,15 +287,37 @@ git grep -n --untracked "GetAllAsync\|GetRequestsAsync"
 - [ ] Partial match: `x.RequestNumber.Contains(value)` (ADR-006)
 - [ ] Date bounds: `CreatedAt >= from.Date` and `CreatedAt < to.Date.AddDays(1)`, both normalised to UTC with `DateTime.SpecifyKind`
 - [ ] Sort: a `switch` over `RequestSortFields`, each arm a typed `OrderBy`/`OrderByDescending` **plus `ThenBy(x => x.Id)`**. Default: `CreatedAt` descending, `Id` as tiebreaker
+- [ ] `status` and `requestType` sort by the **enumeration's underlying value**, which is what ordering on the property gives: `New → InProgress → Completed → Cancelled`, the request's life cycle, not alphabetical order. This is a decision, not a side effect — it goes in the README assumptions (T12)
 
 **Done when**
 
 - [ ] `dotnet build` succeeds — **the first green build since T5**
-- [ ] `EXPLAIN QUERY PLAN` shows an index on the permission path. Capture the output; ADR-001 requires it quoted in the README:
+- [ ] The plan for the permission path is the one below. Capture it; ADR-001 requires it quoted in the README:
 
 ```bash
 sqlite3 src/Requests.Api/requests.db "EXPLAIN QUERY PLAN SELECT * FROM Requests WHERE OwnerId = 1 OR AssignedToUserId = 1 ORDER BY CreatedAt DESC LIMIT 25;"
 ```
+
+```
+MULTI-INDEX OR
+  INDEX 1
+    SEARCH Requests USING INDEX IX_Requests_OwnerId_CreatedAt (OwnerId=?)
+  INDEX 2
+    SEARCH Requests USING INDEX IX_Requests_AssignedToUserId_CreatedAt (AssignedToUserId=?)
+USE TEMP B-TREE FOR ORDER BY
+```
+
+**Read the plan, do not just check that the word INDEX appears.** Each wrong outcome has one cause:
+
+| What the plan says instead | What it means |
+|---|---|
+| `SEARCH … USING INDEX IX_Requests_Status` | A single-column index on `Status` or `RequestType` was added back in T2. The planner prefers it and abandons the permission path (§3.3) |
+| `SCAN Requests USING INDEX IX_Requests_CreatedAt` | The permission predicate is not selective enough to be worth using — the owner spread in T3 was left at five. Scanning in date order and filtering really is cheaper at that distribution, so the planner is right and the seed is wrong |
+| `SCAN Requests` with no index named | Neither composite index exists. Check `OnModelCreating`, and check that `requests.db` was deleted after the model change (§4) |
+
+`USE TEMP B-TREE FOR ORDER BY` **is expected and is not a defect.** The `OR` forces a sort over the union of two index lookups; it is cheap because that union is 372 rows, which is exactly what the owner spread buys. The administrator path is different and also correct: `SCAN Requests USING COVERING INDEX IX_Requests_CreatedAt`, because an administrator has no restriction to narrow on and ordering by the index avoids the sort entirely.
+
+- [ ] Measured on the T3 seed, every query above runs in **under half a millisecond**, and the plan is unchanged after `ANALYZE`. A filtered search in the tens of milliseconds means one of the three rows above applies.
 
 *(No `sqlite3` on the machine? Add `.LogTo(Console.WriteLine)` to the context options to capture EF's real SQL, then run the same `EXPLAIN QUERY PLAN` through a `SqliteCommand` in a scratch test.)*
 
@@ -305,6 +330,7 @@ sqlite3 src/Requests.Api/requests.db "EXPLAIN QUERY PLAN SELECT * FROM Requests 
 - **Project inside the query.** A `Select` after `ToListAsync` pulls whole entities across the boundary and breaks `REQ-N-001`'s acceptance criterion.
 - **The sort key set must not drift from `RequestSortFields`.** A key that validates in T4 but has no `switch` arm here falls through to the default ordering silently — the user gets a different order than the one requested and nothing reports it. Both sides read the same constants.
 - **`ThenBy(x => x.Id)` is not decoration.** Without a tiebreaker, `REQ-F-005`'s determinism criterion fails intermittently and only under paging.
+- **The application will return 500 on every request until T7.** `RequestRepository` now depends on `ICurrentUser`, which nothing registers yet. The build is green and the app starts; only request handling fails. Expected — do not debug it, continue to T7.
 
 ---
 
@@ -329,7 +355,7 @@ sqlite3 src/Requests.Api/requests.db "EXPLAIN QUERY PLAN SELECT * FROM Requests 
 
 ```bash
 curl.exe -i "http://localhost:60702/api/requests"                                        # 401, no identity
-curl.exe -s "http://localhost:60702/api/requests" -H "X-User-Id: 1"                      # 200, totalCount well under 200000
+curl.exe -s "http://localhost:60702/api/requests" -H "X-User-Id: 1"                      # 200, totalCount = 372
 curl.exe -s "http://localhost:60702/api/requests" -H "X-User-Id: 1" -H "X-Is-Admin: true" # 200, totalCount = 200000
 curl.exe -s "http://localhost:60702/api/requests?status=99"       -H "X-User-Id: 1"      # 400, errors.status
 curl.exe -s "http://localhost:60702/api/requests?sortBy=ownerName" -H "X-User-Id: 1"     # 400, errors.sortBy
@@ -342,14 +368,15 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 - [ ] The two identity lines return **different result sets and different totals** — the decisive acceptance test of `REQ-F-010`
 - [ ] `status` renders as `"InProgress"`, not `2`
 - [ ] Timestamps end in `Z`
-- [ ] Swagger still loads at `/swagger`
+- [ ] Swagger still loads at `/swagger`. **Its "Try it out" will return 401**, because the UI sends no identity headers — expected, and worth one line in the README so a reviewer does not read it as a broken endpoint
 
 **Traps**
 
 - **Delete `ParseUserId`.** Its `int.TryParse(...) ? userId : 1` fallback silently assigns identity to user 1 and makes `REQ-F-010`'s decisive test meaningless — it is the specific defect ADR-002 was written against.
 - **Register `IHttpContextAccessor`**, or `ClaimsCurrentUserAccessor` resolves a null context at runtime only.
 - **Without `JsonStringEnumConverter` the table renders `Status: 2`** and the client's string unions never match (§4).
-- CORS placed after `UseAuthorization` silently fails the browser preflight while `curl` keeps working.
+- **The CORS policy must allow the identity headers, not only the origin** (§4). `X-User-Id` is a custom header, so every call becomes a preflighted request; a policy with `WithOrigins(...)` alone returns no `Access-Control-Allow-Headers` and the browser blocks it. Add `AllowAnyHeader()` or name them explicitly. **Every `curl` line above will still pass** — this failure exists only in a browser, and surfaces in T9 as an unexplained network error against a server that all its own tests just cleared.
+- `UseCors` placed after `UseAuthorization` fails the preflight the same way, and just as invisibly.
 
 ---
 
@@ -374,12 +401,13 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 | 1 | A regular user sees only owned or assigned requests | `REQ-F-008` | repository |
 | 2 | An administrator sees all requests | `REQ-F-009` | repository |
 | 3 | `000123` finds `REQ-000123` — a mid-string match | `REQ-F-001` | repository |
-| 4 | Multiple statuses filter correctly | `REQ-F-002` | repository |
+| 4 | Multiple statuses filter correctly **as a regular user** | `REQ-F-002`, `REQ-F-008` | repository |
 | 5 | Paging returns the right rows **and the right total** | `REQ-N-002` | repository |
 | 6 | An inverted date range is rejected | `REQ-F-007` | validation |
 
 - [ ] Tests 1 and 2 run **the same query** under two identities and assert that both the rows **and the totals** differ — that is the decisive test, not two unrelated assertions
 - [ ] Test 5 asserts `TotalCount > Items.Count` on a page-sized result
+- [ ] **Test 4 seeds at least one request that matches the status filter but belongs to another user**, and asserts it is absent from **both** `Items` and `TotalCount`. Without that row the test exercises an `IN` clause and proves nothing about the combination `REQ-F-008` actually requires (§3.6)
 
 **Done when** — `dotnet test` reports **6 passed**, and passes again on a second run (no cross-test leakage).
 
@@ -420,6 +448,7 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 - **Repeated `status` parameters use `params.append`, not `params.set`.** `set` keeps only the last value and multi-select silently filters by one status (§3.4a).
 - **Format dates as local `yyyy-MM-dd`, never `toISOString().slice(0,10)`.** The range picker yields local midnight; at UTC+3 `toISOString` moves it to the previous day, and the user sees a range shifted by one day with no error. This is the client-side twin of §4's "incoming date bounds are normalised to UTC".
 - **A configuration load failure is a startup error, not a fallback to some default address** (ADR-007).
+- **Load `site.config.json` through `HttpBackend`, not the intercepted `HttpClient`.** Otherwise the identity interceptor decorates a static-asset request with `X-User-Id`, and the moment the interceptor needs anything from configuration the bootstrap becomes circular.
 - **Without `provideNativeDateAdapter` the date-range input fails at runtime only** (§4).
 
 ---
@@ -443,11 +472,13 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 - [ ] **Loading** — the progress bar is visible while a request is in flight
 - [ ] **Results** — the paginator's page count reflects `totalCount`, not the 25 rows on screen
 - [ ] **Error** — `sortBy=ownerName` (or any 400) renders the field-level message, never a blank screen
-- [ ] **Empty** — switching to user 9 shows the no-results message, clearly distinct from the other two
+- [ ] **Empty** — switching to user 5000, who owns nothing, shows the no-results message, clearly distinct from the other two
 - [ ] Switching identity to Administrator changes the row count **and the total** on screen
 
 **Traps**
 
+- **The paginator is zero-based and the API is one-based** (§4). `PageEvent.pageIndex` is `0` on the first page, and `REQ-F-007` defines `page=0` as invalid input — so a direct binding opens the screen on a 400 before the user has touched anything. Convert in both directions: `page: pageIndex + 1` going out, `pageIndex: page - 1` coming back.
+- **A cleared sort sends no sort parameters at all** (§4). `matSort`'s third click emits `direction: ''`, which serialises to `sortDirection=` and is rejected with 400. Either set `matSortDisableClear`, or omit both `sortBy` and `sortDirection` when the direction is empty.
 - **Do not bind the table to `MatTableDataSource`'s client-side sort and paging.** It would sort the 25 rows already fetched instead of the 200,000 on the server — `REQ-N-001` and `REQ-N-002` break silently and the screen still looks right (§4, §3.5 rule 3).
 - **The paginator's `length` comes from the response `totalCount`.** Bound to `rows.length`, navigation shows one page regardless of the real result size (§4).
 - **A filter change that does not reset the page** leaves the user on page 40 of a three-page result, looking at the empty state (`REQ-N-002`).
@@ -493,7 +524,9 @@ One section per requirement, so the matrix is checkable by reading:
   - case handling on the partial match follows the store's collation and is **unspecified** (ADR-006)
   - the header identity scheme is **not secure**, and why that is acceptable here (ADR-002)
   - the seed is 200,000 rows: it *demonstrates*; the *design* is what holds at millions (§3.3)
-  - the `EXPLAIN QUERY PLAN` output captured in T6
+  - sorting by status or request type follows the **enumeration's life-cycle order**, not alphabetical order (T6)
+  - owners and assignees are spread over a thousand identifiers, and there is no `User` table — they are identifiers only, by decision in `requirements.md`
+  - the `EXPLAIN QUERY PLAN` output captured in T6, with the measured timings and what they are evidence *of*: the work the database does per search does not grow with the table, which is `REQ-N-001`'s actual criterion
 - [ ] **One technical decision with real alternatives** (`REQ-D-006`) — **ADR-002 is the intended answer** (§ADR-002). ADR-007 is a strong second: both alternatives were real and one was chosen deliberately
 - [ ] **What was not completed and how it would continue** (`REQ-D-007`) — every cut actually taken from the cut-order table, plus the standing next steps the design already names: keyset pagination if access turns into deep scrolling (ADR-003), a trigram index or search engine for the substring scan (ADR-006), FluentValidation to close the non-HTTP caller gap (ADR-004)
 
