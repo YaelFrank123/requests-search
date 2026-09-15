@@ -1,0 +1,18 @@
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.login-card {
+  width: 320px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.error-message {
+  color: var(--mat-sys-error, #b3261e);
+}

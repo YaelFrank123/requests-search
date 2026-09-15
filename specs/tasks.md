@@ -552,17 +552,19 @@ Kept separate from T8's six — they test the auth pipeline (T7), not the search
 | `features/login/login-page/` | **New** — `LoginPageComponent`: username/password form, calls `AuthService.login()`, shows the login error |
 | `app.routes.ts` | Add `/login` (no guard); guard the request-search route |
 
-- [ ] `AuthService.login()` stores `token`, `username`, `role`, `expiresAt` **read directly off the `POST /api/auth/login` response body** (§3.4a) into `sessionStorage` — no JWT decoding anywhere on the client
-- [ ] `auth.interceptor.ts` skips the login request itself (no token to attach yet) and the `site.config.json` fetch (T9's trap)
-- [ ] `LoginPageComponent`: on a 401 from login, show the server's generic message (`REQ-F-108`); on success, navigate to the search page
-- [ ] A visible "logged in as `<username>` (`<role>`) · Logout" element, reading `AuthService.username`/`role` directly, placed wherever T10's search page hosts it
+- [x] `AuthService.login()` stores `token`, `username`, `role`, `expiresAt` **read directly off the `POST /api/auth/login` response body** (§3.4a) into `sessionStorage` — no JWT decoding anywhere on the client
+- [x] `auth.interceptor.ts` skips the login request itself (no token to attach yet) and the `site.config.json` fetch (T9's trap — structurally guaranteed there, since that fetch uses a separate `HttpClient` built on `HttpBackend`, which no interceptor ever sees)
+- [x] `LoginPageComponent`: on a 401 from login, show the server's generic message (`REQ-F-108`); on success, navigate to the search page
+- [x] A visible "logged in as `<username>` (`<role>`) · Logout" element, reading `AuthService.username`/`role` directly — **built now on the placeholder page below, not on T10's real page**, since T10 doesn't exist yet; T10 keeps or restyles this markup when it hosts the real search page
+
+**Deviation, recorded rather than silent:** T9a's own Files table lists no destination component for the guarded `/requests` route — T10 owns that file. But T9a's "Done when" requires proving the guard/login/logout flow reaches a real page, which needs *something* at that route now. Added `features/request-search/request-search-page/request-search-page.component.ts` as an explicit placeholder (docblock says so), plus `app.component.html`'s `<router-outlet />` (the scaffold's default template had no outlet at all — routing could not have worked without this regardless of task boundaries, so it isn't really a T9a addition so much as a T9 gap closed here).
 
 **Done when**
 
-- [ ] Visiting the search route while logged out redirects to `/login`
-- [ ] Logging in with each of T3a's two demo accounts, in turn, reaches the search page and every subsequent API call carries that account's token
-- [ ] Logging in with a wrong password shows the error and does not navigate
-- [ ] Logout clears the session and returns to `/login`; the guard then blocks the search route again
+- [x] Visiting the search route while logged out redirects to `/login` — verified: navigating to `/requests` unauthenticated lands on the sign-in form
+- [x] Logging in with each of T3a's two demo accounts, in turn, reaches the search page and every subsequent API call carries that account's token — verified for both `user`/`User123!` and `admin`/`Admin123!`; each reaches the placeholder page showing "Logged in as `<username>` (`<role>`)"
+- [x] Logging in with a wrong password shows the error and does not navigate — verified: `user`/wrong password → "Invalid username or password.", form stays put
+- [x] Logout clears the session and returns to `/login`; the guard then blocks the search route again — verified: Logout returns to `/login`, and a direct navigation to `/requests` afterward redirects back to `/login`
 
 **Traps**
 
