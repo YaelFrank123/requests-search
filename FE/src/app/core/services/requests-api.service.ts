@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Inject, Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../config/api-base-url.token';
@@ -9,10 +9,8 @@ import { RequestSearchQuery } from '../models/search-query.model';
 
 @Injectable({ providedIn: 'root' })
 export class RequestsApiService {
-  constructor(
-    private readonly http: HttpClient,
-    @Inject(API_BASE_URL) private readonly apiBaseUrl: string
-  ) {}
+  private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(API_BASE_URL);
 
   search(query: RequestSearchQuery): Observable<PagedResult<RequestDto>> {
     let params = new HttpParams().set('page', query.page).set('pageSize', query.pageSize);

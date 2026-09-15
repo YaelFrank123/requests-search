@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Inject, Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 
@@ -17,13 +17,11 @@ interface StoredSession {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly session = signal<StoredSession | null>(this.readSession());
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+  private readonly apiBaseUrl = inject(API_BASE_URL);
 
-  constructor(
-    private readonly http: HttpClient,
-    private readonly router: Router,
-    @Inject(API_BASE_URL) private readonly apiBaseUrl: string
-  ) {}
+  private readonly session = signal<StoredSession | null>(this.readSession());
 
   readonly token = computed(() => this.session()?.token ?? null);
   readonly username = computed(() => this.session()?.username ?? null);
