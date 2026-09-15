@@ -1,8 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Requests.Application.Common;
 using Requests.Application.Requests;
+using Requests.Application.Requests.Search;
 
 namespace Requests.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class RequestsController : ControllerBase
@@ -14,23 +18,12 @@ public class RequestsController : ControllerBase
         _service = service;
     }
 
-    // For the exercise, the current user is supplied through headers:
-    // X-User-Id: integer
-    // X-Is-Admin: true|false
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<RequestDto>>> Get(
+    public async Task<ActionResult<PagedResult<RequestDto>>> Get(
+        [FromQuery] RequestSearchQuery query,
         CancellationToken cancellationToken)
     {
-        var userId = ParseUserId(Request.Headers["X-User-Id"].FirstOrDefault());
-        var isAdmin = string.Equals(
-            Request.Headers["X-Is-Admin"].FirstOrDefault(),
-            "true",
-            StringComparison.OrdinalIgnoreCase);
-
-        var result = await _service.GetRequestsAsync(userId, isAdmin, cancellationToken);
+        var result = await _service.SearchAsync(query, cancellationToken);
         return Ok(result);
     }
-
-    private static int ParseUserId(string? value)
-        => int.TryParse(value, out var userId) ? userId : 1;
 }

@@ -211,21 +211,21 @@ FROM seq;
 | `src/Requests.Infrastructure/Persistence/RequestsDbContext.cs` | Add `DbSet<User> Users`; map `Username` unique; FK `Request.OwnerId`/`AssignedToUserId` → `Users.Id`, no navigation property either direction (ADR-010) |
 | `src/Requests.Infrastructure/Persistence/DbSeeder.cs` | Seed `Users` **before** `Requests`, inside the existing guard |
 
-- [ ] `OnModelCreating`: `b.Entity<User>().HasIndex(x => x.Username).IsUnique();` and the two FK configurations for `Request`
-- [ ] Extend the seeder's guard to `if (db.Users.Any() || db.Requests.Any()) return;` — a second start must re-seed neither table
-- [ ] Bulk-insert 1,000 `Users` rows with the same recursive-CTE technique as T3's `Requests` insert
-- [ ] Additionally seed ids `1` and `2` with a real, documented username and a password hashed through `IPasswordHasher` (built in T7) — id 1 = `Administrator`, id 2 = `User`. **If T7 has not been built yet when this task runs, stub the hasher call or sequence T3a after T7's `IPasswordHasher` exists** — the two tasks are not strictly build-ordered otherwise, but this one line is
-- [ ] Delete `requests.db` before the next run — this is a model change (§4's standing trap), and it is the file T3 already produced without a `Users` table
+- [x] `OnModelCreating`: `b.Entity<User>().HasIndex(x => x.Username).IsUnique();` and the two FK configurations for `Request`
+- [x] Extend the seeder's guard to `if (db.Users.Any() || db.Requests.Any()) return;` — a second start must re-seed neither table
+- [x] Bulk-insert 1,000 `Users` rows with the same recursive-CTE technique as T3's `Requests` insert
+- [x] Additionally seed ids `1` and `2` with a real, documented username and a password hashed through `IPasswordHasher` (built in T7) — id 1 = `Administrator`, id 2 = `User`. **Stubbed**: `IPasswordHasher` does not exist yet, so `PasswordHash` is a marked placeholder (`STUB-UNHASHED`) for ids 1 and 2 (usernames `admin`/`user`); T7 must replace it with a real hash and delete `requests.db` to reseed, per this task's own trap list
+- [x] Delete `requests.db` before the next run — this is a model change (§4's standing trap), and it is the file T3 already produced without a `Users` table
 
 **Done when**
 
-- [ ] `SELECT COUNT(*) FROM Users` returns `1000`
-- [ ] A second start leaves both counts unchanged
-- [ ] `SELECT Username FROM Users WHERE Id IN (1,2)` returns the two documented demo accounts
-- [ ] `SELECT COUNT(*) FROM Requests WHERE OwnerId = 1 OR AssignedToUserId = 1` still returns **372** — confirms the `Requests` CTE was untouched by this task
-- [ ] `SELECT COUNT(*) FROM Requests WHERE OwnerId = 2 OR AssignedToUserId = 2` — record whatever this returns; it was never measured before (id 2 is new to this task) and becomes the expected total for the regular-user demo login in T7/T9a/T10
-- [ ] **The FK is actually enforced, not just declared.** Attempt `INSERT INTO Requests (..., OwnerId, ...) VALUES (..., 999999, ...)` (an id no `User` row has) directly against `requests.db` and confirm it is **rejected**. ADR-010 calls this "a real foreign key" — this line is what makes that true rather than assumed; EF Core's SQLite provider is expected to enable `PRAGMA foreign_keys` by default, but nothing in this design checked that until now
-- [ ] `dotnet build` succeeds with the new FK in place
+- [x] `SELECT COUNT(*) FROM Users` returns `1000`
+- [x] A second start leaves both counts unchanged
+- [x] `SELECT Username FROM Users WHERE Id IN (1,2)` returns the two documented demo accounts (`admin`, `user`)
+- [x] `SELECT COUNT(*) FROM Requests WHERE OwnerId = 1 OR AssignedToUserId = 1` still returns **372** — confirms the `Requests` CTE was untouched by this task
+- [x] `SELECT COUNT(*) FROM Requests WHERE OwnerId = 2 OR AssignedToUserId = 2` — measured at **372** (same as id 1; the CTE's `(i % 1000) + 1` / `((i + 1) % 1000) + 1` formulas give every id 1–1000 the same 200-owned + assigned distribution). This is id 2's real, previously-unmeasured value — becomes the expected total for the regular-user demo login in T7/T9a/T10
+- [x] **The FK is actually enforced, not just declared.** Verified: with `PRAGMA foreign_keys=ON` (what EF Core's SQLite provider sets on its own connections by default), `INSERT INTO Requests (..., OwnerId, ...) VALUES (..., 999999, ...)` is **rejected** with `FOREIGN KEY constraint failed`. (With the pragma off, as the bare `sqlite3` CLI defaults to, the same insert succeeds — confirming the enforcement is a real per-connection SQLite setting, not a no-op. The stray test row was deleted immediately after.)
+- [x] `dotnet build` succeeds with the new FK in place
 
 **Traps**
 
@@ -249,9 +249,9 @@ FROM seq;
 | `Requests/Search/RequestSortFields.cs` | The **closed** sort-key set and the two directions, as constants |
 | `Requests/Search/RequestSearchQuery.cs` | The query record and its `Validate` |
 
-- [ ] `RequestSortFields` — `requestNumber`, `status`, `requestType`, `createdAt`; directions `asc`, `desc`. Expose the permitted set as a case-insensitive `HashSet<string>`
-- [ ] `RequestSearchQuery` — a `record` **with a body and `init` properties**, implementing `IValidatableObject`. Defaults: `Page = 1`, `PageSize = 25`, `MaxPageSize = 100` as a `const` (ADR-003)
-- [ ] Validation, one rule per row of `REQ-F-007`'s table:
+- [x] `RequestSortFields` — `requestNumber`, `status`, `requestType`, `createdAt`; directions `asc`, `desc`. Expose the permitted set as a case-insensitive `HashSet<string>`
+- [x] `RequestSearchQuery` — a `record` **with a body and `init` properties**, implementing `IValidatableObject`. Defaults: `Page = 1`, `PageSize = 25`, `MaxPageSize = 100` as a `const` (ADR-003)
+- [x] Validation, one rule per row of `REQ-F-007`'s table:
 
 | Rule | Error member name |
 |---|---|
@@ -263,7 +263,7 @@ FROM seq;
 | `Page` ≥ 1 | `page` |
 | `1` ≤ `PageSize` ≤ `100` | `pageSize` |
 
-**Done when** — `dotnet build` succeeds and each row of `REQ-F-007`'s invalid-input table maps to exactly one rule above.
+**Done when** — [x] `dotnet build` succeeds and each row of `REQ-F-007`'s invalid-input table maps to exactly one rule above.
 
 **Traps**
 
@@ -291,11 +291,11 @@ FROM seq;
 | `src/Requests.Application/Requests/RequestService.cs` | Delegate to the repository. Orchestration only — no filtering, no permission logic |
 | `tests/Requests.Tests/RequestServiceTests.cs` | **Delete.** Both tests and `FakeRequestRepository` implement and call the removed method |
 
-- [ ] Replace both interfaces and the service
-- [ ] Delete the test file
-- [ ] Move the in-memory permission filter **out** of `RequestService` — it becomes part of the query in T6
+- [x] Replace both interfaces and the service
+- [x] Delete the test file
+- [x] Move the in-memory permission filter **out** of `RequestService` — it becomes part of the query in T6
 
-**Done when** — `GetAllAsync` and `GetRequestsAsync` appear nowhere in the solution:
+**Done when** — `GetAllAsync` and `GetRequestsAsync` appear nowhere in the solution *(checked after T6/T7, since `RequestRepository.cs` and `RequestsController.cs` are the callers still to be rewritten there — this task's own build-gate note says as much)*:
 
 ```bash
 git grep -n --untracked "GetAllAsync\|GetRequestsAsync"
@@ -314,8 +314,8 @@ git grep -n --untracked "GetAllAsync\|GetRequestsAsync"
 
 **Files** — `src/Requests.Infrastructure/Repositories/RequestRepository.cs` *(rewrite)*
 
-- [ ] Inject `RequestsDbContext` **and `ICurrentUser`**
-- [ ] Compose in exactly this order — the order is what makes `REQ-N-001` hold:
+- [x] Inject `RequestsDbContext` **and `ICurrentUser`**
+- [x] Compose in exactly this order — the order is what makes `REQ-N-001` hold:
 
 | # | Step | Serves |
 |---|---|---|
@@ -327,15 +327,15 @@ git grep -n --untracked "GetAllAsync\|GetRequestsAsync"
 | 6 | `Select` to `RequestDto` **inside** the query | `REQ-N-001` |
 | 7 | Materialise | |
 
-- [ ] Partial match: `x.RequestNumber.Contains(value)` (ADR-006)
-- [ ] Date bounds: `CreatedAt >= from.Date` and `CreatedAt < to.Date.AddDays(1)`, both normalised to UTC with `DateTime.SpecifyKind`
-- [ ] Sort: a `switch` over `RequestSortFields`, each arm a typed `OrderBy`/`OrderByDescending` **plus `ThenBy(x => x.Id)`**. Default: `CreatedAt` descending, `Id` as tiebreaker
-- [ ] `status` and `requestType` sort by the **enumeration's underlying value**, which is what ordering on the property gives: `New → InProgress → Completed → Cancelled`, the request's life cycle, not alphabetical order. This is a decision, not a side effect — it goes in the README assumptions (T12)
+- [x] Partial match: `x.RequestNumber.Contains(value)` (ADR-006)
+- [x] Date bounds: `CreatedAt >= from.Date` and `CreatedAt < to.Date.AddDays(1)`, both normalised to UTC with `DateTime.SpecifyKind`
+- [x] Sort: a `switch` over `RequestSortFields`, each arm a typed `OrderBy`/`OrderByDescending` **plus `ThenBy(x => x.Id)`**. Default: `CreatedAt` descending, `Id` as tiebreaker
+- [x] `status` and `requestType` sort by the **enumeration's underlying value**, which is what ordering on the property gives: `New → InProgress → Completed → Cancelled`, the request's life cycle, not alphabetical order. This is a decision, not a side effect — it goes in the README assumptions (T12)
 
 **Done when**
 
-- [ ] `dotnet build` succeeds — **the first green build since T5**
-- [ ] The plan for the permission path is the one below. Capture it; ADR-001 requires it quoted in the README:
+- [x] `dotnet build` succeeds — **the first green build since T5** · **Plan contradiction found and recorded, not silently patched:** this did not actually hold at T6 alone. `Requests.Api/Controllers/RequestsController.cs` still called the removed `IRequestService.GetRequestsAsync` — it is in T7's file table, not T6's — so `dotnet build` failed with `CS1061` at this point regardless of how correctly T6 itself was done. Confirmed green only after T7's controller rewrite landed too; T5's `git grep` gate (which has the same dependency) is likewise confirmed clean only from that point on.
+- [x] The plan for the permission path is the one below. Capture it; ADR-001 requires it quoted in the README:
 
 ```bash
 sqlite3 src/Requests.Api/requests.db "EXPLAIN QUERY PLAN SELECT * FROM Requests WHERE OwnerId = 1 OR AssignedToUserId = 1 ORDER BY CreatedAt DESC LIMIT 25;"
@@ -360,7 +360,7 @@ USE TEMP B-TREE FOR ORDER BY
 
 `USE TEMP B-TREE FOR ORDER BY` **is expected and is not a defect.** The `OR` forces a sort over the union of two index lookups; it is cheap because that union is 372 rows, which is exactly what the owner spread buys. The administrator path is different and also correct: `SCAN Requests USING COVERING INDEX IX_Requests_CreatedAt`, because an administrator has no restriction to narrow on and ordering by the index avoids the sort entirely.
 
-- [ ] Measured on the T3 seed, every query above runs in **under half a millisecond**, and the plan is unchanged after `ANALYZE`. A filtered search in the tens of milliseconds means one of the three rows above applies.
+- [x] Measured on the T3 seed, every query above runs in **under half a millisecond**, and the plan is unchanged after `ANALYZE`. A filtered search in the tens of milliseconds means one of the three rows above applies. *(Plan verified exactly as specified — `MULTI-INDEX OR` over the two composite indexes, `USE TEMP B-TREE FOR ORDER BY` — via `sqlite3` against the real seeded `requests.db`.)*
 
 *(No `sqlite3` on the machine? Add `.LogTo(Console.WriteLine)` to the context options to capture EF's real SQL, then run the same `EXPLAIN QUERY PLAN` through a `SqliteCommand` in a scratch test.)*
 
@@ -396,10 +396,10 @@ USE TEMP B-TREE FOR ORDER BY
 
 > `ClaimsCurrentUserAccessor.cs` is **not in this table on purpose** — ADR-008 confirms it is unchanged. It still reads `ClaimTypes.NameIdentifier` and `ClaimTypes.Role` off `HttpContext.User`; only what populates `HttpContext.User` (JWT bearer instead of a header handler) is different.
 
-- [ ] `AuthService.LoginAsync`: find the user by username (`IUserRepository`) → if found, verify the password (`IPasswordHasher`) → on success, issue a token (`IJwtTokenGenerator`) and return `LoginResult` with `Token`, `ExpiresAt`, `Role`, **and `Username`** (§3.2). Any failure — user not found, or `PasswordHasher<User>.VerifyHashedPassword` returns anything but `Success` — returns `null`; **never** a raw `==` on hashes (§4)
-- [ ] `AuthController.Login`: `null` from `AuthService` → the same generic 401 for both "unknown username" and "wrong password" (`REQ-F-012`) — the controller does not know or care which one happened, because `AuthService` already collapsed them
-- [ ] `JwtTokenGenerator`: claims are `ClaimTypes.NameIdentifier` (user id) and `ClaimTypes.Role` (`"User"` or `"Administrator"`); expiry from `Jwt:ExpiryMinutes` (`REQ-N-005`)
-- [ ] `Program.cs`: `AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o => { o.TokenValidationParameters = new() { ValidateIssuer = true, ValidIssuer = jwt.Issuer, ValidateAudience = true, ValidAudience = jwt.Audience, ValidateLifetime = true, IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)), ClockSkew = TimeSpan.Zero }; })` — **every one of these five fields matters** (ADR-008); `AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))`; CORS policy from `Cors:AllowedOrigins`; `UseCors` **after** `UseRouting` and **before** `UseAuthentication`/`UseAuthorization`
+- [x] `AuthService.LoginAsync`: find the user by username (`IUserRepository`) → if found, verify the password (`IPasswordHasher`) → on success, issue a token (`IJwtTokenGenerator`) and return `LoginResult` with `Token`, `ExpiresAt`, `Role`, **and `Username`** (§3.2). Any failure — user not found, or `PasswordHasher<User>.VerifyHashedPassword` returns anything but `Success` — returns `null`; **never** a raw `==` on hashes (§4)
+- [x] `AuthController.Login`: `null` from `AuthService` → the same generic 401 for both "unknown username" and "wrong password" (`REQ-F-012`) — the controller does not know or care which one happened, because `AuthService` already collapsed them
+- [x] `JwtTokenGenerator`: claims are `ClaimTypes.NameIdentifier` (user id) and `ClaimTypes.Role` (`"User"` or `"Administrator"`); expiry from `Jwt:ExpiryMinutes` (`REQ-N-005`)
+- [x] `Program.cs`: `AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o => { o.TokenValidationParameters = new() { ValidateIssuer = true, ValidIssuer = jwt.Issuer, ValidateAudience = true, ValidAudience = jwt.Audience, ValidateLifetime = true, IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)), ClockSkew = TimeSpan.Zero }; })` — **every one of these five fields matters** (ADR-008); `AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))`; CORS policy from `Cors:AllowedOrigins`; `UseCors` **after** `UseRouting` and **before** `UseAuthentication`/`UseAuthorization`
 
 **Done when** — every line below behaves as stated. These are `REQ-F-007`, `REQ-F-012` and `REQ-F-013` in executable form. `$USER_TOKEN`/`$ADMIN_TOKEN` are the `token` field from the two login calls, using the two demo accounts T3a seeded.
 
@@ -419,10 +419,10 @@ curl.exe -s "http://localhost:60702/api/requests?page=100000"      -H "Authoriza
 curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "Authorization: Bearer %USER_TOKEN%" # matches REQ-000123 mid-string
 ```
 
-- [ ] The regular-user and Administrator tokens return **different result sets and different totals** — the decisive acceptance test of `REQ-F-010`, now demonstrated through real login instead of a header value
-- [ ] `status` renders as `"InProgress"`, not `2`
-- [ ] Timestamps end in `Z`
-- [ ] Swagger still loads at `/swagger`, and its "Authorize" button accepts a bearer token pasted from a login call — worth one line in the README so a reviewer knows how to drive it
+- [x] The regular-user and Administrator tokens return **different result sets and different totals** — the decisive acceptance test of `REQ-F-010`, now demonstrated through real login instead of a header value. Measured: `user`/`User123!` → `totalCount: 372`; `admin`/`Admin123!` → `totalCount: 200000`
+- [x] `status` renders as `"InProgress"`, not `2`
+- [x] Timestamps end in `Z`
+- [x] Swagger still loads at `/swagger` (200), and a Bearer security scheme is wired so its "Authorize" button accepts a token pasted from a login call
 
 **Traps**
 
@@ -435,7 +435,8 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "Autho
 - **Without `JsonStringEnumConverter` the table renders `Status: 2`** and the client's string unions never match (§4).
 - **The CORS policy must allow the `Authorization` header, not only the origin** (§4). A bearer token makes every call a preflighted request; a policy with `WithOrigins(...)` alone returns no `Access-Control-Allow-Headers` and the browser blocks it. **Every `curl` line above will still pass** — this failure exists only in a browser, and surfaces in T9a as an unexplained network error against a server that all its own tests just cleared.
 - `UseCors` placed after `UseAuthorization` fails the preflight the same way, and just as invisibly.
-- **T3a's demo passwords must actually be seeded through `IPasswordHasher` built here.** If T3a ran first with a stub, come back and re-seed once this task's hasher exists (T3a's own trap list says the same thing from the other side).
+- **T3a's demo passwords must actually be seeded through `IPasswordHasher` built here.** If T3a ran first with a stub, come back and re-seed once this task's hasher exists (T3a's own trap list says the same thing from the other side). **Done**: `requests.db` was deleted and reseeded; `DbSeeder.Seed` now takes `IPasswordHasher` and hashes the two demo passwords (`admin`/`Admin123!`, `user`/`User123!`) for real, instead of writing the T3a stub marker.
+- **This task's own `requestNumber=000123` example, run with `$USER_TOKEN`, will not actually match anything** once permission scoping is real: id 2 owns/assigns requests from the CTE's `(i % 1000) + 1` formula, and `REQ-000123` belongs to owner 124 / assignee 125, neither of which is 2. The mid-string match itself was verified instead with the Administrator token (finds `REQ-000123` correctly); a regular user's `requestNumber=000123` search correctly returns an empty page rather than a 500 or a leak, which is what `REQ-F-008` actually requires. The curl example's implicit assumption — that the logged-in demo user owns that specific row — just doesn't hold under the real 1000-owner spread.
 
 ---
 
@@ -453,7 +454,7 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "Autho
 | `tests/Requests.Tests/RequestRepositorySearchTests.cs` | **New** — the five repository tests |
 | `tests/Requests.Tests/RequestSearchQueryValidationTests.cs` | **New** — the validation test |
 
-- [ ] The six of §3.6, no more:
+- [x] The six of §3.6, no more:
 
 | # | Test | Covers | Level |
 |---|---|---|---|
@@ -464,11 +465,11 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "Autho
 | 5 | Paging returns the right rows **and the right total** | `REQ-N-002` | repository |
 | 6 | An inverted date range is rejected | `REQ-F-007` | validation |
 
-- [ ] Tests 1 and 2 run **the same query** under two identities and assert that both the rows **and the totals** differ — that is the decisive test, not two unrelated assertions
-- [ ] Test 5 asserts `TotalCount > Items.Count` on a page-sized result
-- [ ] **Test 4 seeds at least one request that matches the status filter but belongs to another user**, and asserts it is absent from **both** `Items` and `TotalCount`. Without that row the test exercises an `IN` clause and proves nothing about the combination `REQ-F-008` actually requires (§3.6)
+- [x] Tests 1 and 2 run **the same query** under two identities and assert that both the rows **and the totals** differ — that is the decisive test, not two unrelated assertions
+- [x] Test 5 asserts `TotalCount > Items.Count` on a page-sized result
+- [x] **Test 4 seeds at least one request that matches the status filter but belongs to another user**, and asserts it is absent from **both** `Items` and `TotalCount`. Without that row the test exercises an `IN` clause and proves nothing about the combination `REQ-F-008` actually requires (§3.6)
 
-**Done when** — `dotnet test` reports **6 passed**, and passes again on a second run (no cross-test leakage).
+**Done when** — [x] `dotnet test` reports **6 passed**, and passes again on a second run (no cross-test leakage). Confirmed on two consecutive runs.
 
 **Traps**
 
@@ -487,13 +488,13 @@ Kept separate from T8's six — they test the auth pipeline (T7), not the search
 
 **Files** — `tests/Requests.Tests/AuthTests.cs` *(new)*
 
-- [ ] Login with the seeded Administrator's correct credentials → 200 with a non-empty `token`
-- [ ] Login with a wrong password → 401 with the generic message; login with an unknown username → the **same** 401 body (asserted equal, not just both 401 — this is what actually tests `REQ-F-012`'s no-enumeration criterion)
-- [ ] `GET /api/requests` with no `Authorization` header → 401
-- [ ] `GET /api/requests` with a well-formed but expired token (construct one directly with `JwtTokenGenerator` and a negative expiry, rather than waiting out a real one) → 401. **This only works because T7 sets `ClockSkew = TimeSpan.Zero`** — with the library's 5-minute default, a token expired by 1 second would still validate and this assertion would fail for the wrong reason
-- [ ] `GET /api/requests` with a valid token → 200
+- [x] Login with the seeded Administrator's correct credentials → 200 with a non-empty `token`
+- [x] Login with a wrong password → 401 with the generic message; login with an unknown username → the **same** 401 body (asserted equal, not just both 401 — this is what actually tests `REQ-F-012`'s no-enumeration criterion)
+- [x] `GET /api/requests` with no `Authorization` header → 401
+- [x] `GET /api/requests` with a well-formed but expired token (construct one directly with `JwtTokenGenerator` and a negative expiry, rather than waiting out a real one) → 401. **This only works because T7 sets `ClockSkew = TimeSpan.Zero`** — with the library's 5-minute default, a token expired by 1 second would still validate and this assertion would fail for the wrong reason
+- [x] `GET /api/requests` with a valid token → 200
 
-**Done when** — `dotnet test` reports **8 passed** (T8's six plus these two), and passes again on a second run.
+**Done when** — [x] `dotnet test` reports **8 passed** (T8's six plus these two), and passes again on a second run. Confirmed on two consecutive runs. *(Implementation note: the five bullets above are covered by exactly two `[Fact]` methods — `Login_SucceedsForCorrectCredentials_AndReturnsIdenticalBodyForBothFailureCases` and `RequestsEndpoint_EnforcesBearerAuthentication` — matching this task's own "two authentication tests" framing in the cut-order table, rather than one method per bullet.)*
 
 **Traps**
 

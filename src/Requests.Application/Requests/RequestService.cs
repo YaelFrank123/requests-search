@@ -1,3 +1,6 @@
+using Requests.Application.Common;
+using Requests.Application.Requests.Search;
+
 namespace Requests.Application.Requests;
 
 public sealed class RequestService : IRequestService
@@ -9,28 +12,6 @@ public sealed class RequestService : IRequestService
         _repository = repository;
     }
 
-    public async Task<IReadOnlyList<RequestDto>> GetRequestsAsync(
-        int currentUserId,
-        bool isAdministrator,
-        CancellationToken cancellationToken = default)
-    {
-        var requests = await _repository.GetAllAsync(cancellationToken);
-
-        if (!isAdministrator)
-        {
-            requests = requests
-                .Where(x => x.OwnerId == currentUserId || x.AssignedToUserId == currentUserId)
-                .ToList();
-        }
-
-        return requests.Select(x => new RequestDto(
-            x.Id,
-            x.RequestNumber,
-            x.CustomerId,
-            x.OwnerId,
-            x.AssignedToUserId,
-            x.Status,
-            x.RequestType,
-            x.CreatedAt)).ToList();
-    }
+    public Task<PagedResult<RequestDto>> SearchAsync(RequestSearchQuery query, CancellationToken cancellationToken = default)
+        => _repository.SearchAsync(query, cancellationToken);
 }
