@@ -1,0 +1,56 @@
+<header class="page-header">
+  <span>Logged in as {{ authService.username }} ({{ authService.role }})</span>
+  <button mat-button (click)="logout()">Logout</button>
+</header>
+
+<form [formGroup]="filterForm" class="filter-form">
+  <mat-form-field appearance="outline">
+    <mat-label>Request number</mat-label>
+    <input matInput formControlName="requestNumber" placeholder="e.g. 000123" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Status</mat-label>
+    <mat-select formControlName="status" multiple>
+      @for (option of statusOptions; track option) {
+        <mat-option [value]="option">{{ option }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Type</mat-label>
+    <mat-select formControlName="requestType">
+      <mat-option [value]="null">Any</mat-option>
+      @for (option of requestTypeOptions; track option) {
+        <mat-option [value]="option">{{ option }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Created date range</mat-label>
+    <mat-date-range-input [rangePicker]="picker">
+      <input matStartDate formControlName="createdFrom" placeholder="Start date" />
+      <input matEndDate formControlName="createdTo" placeholder="End date" />
+    </mat-date-range-input>
+    <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+    <mat-date-range-picker #picker></mat-date-range-picker>
+  </mat-form-field>
+
+  <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+</form>
+
+<app-request-results-table
+  [rows]="rows"
+  [totalCount]="totalCount"
+  [page]="page"
+  [pageSize]="pageSize"
+  [sortActive]="sortActive"
+  [sortDirection]="sortDirection"
+  [loading]="loading"
+  [errorFields]="errorFields"
+  (sortChange)="onSortChange($event)"
+  (pageChange)="onPageChange($event)"
+>
+</app-request-results-table>

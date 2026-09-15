@@ -581,30 +581,30 @@ Kept separate from T8's six — they test the auth pipeline (T7), not the search
 
 **Files** — `frontend/src/app/features/request-search/` — two components, per §3.5
 
-- [ ] `RequestSearchPageComponent` (stateful) — owns the filter form, sort state, page state, and the loading / error / results state; hosts the filter controls directly
-- [ ] `RequestResultsTableComponent` (presentational) — inputs `rows`, `totalCount`, `page`, `pageSize`, `sort`, `loading`, `errorMessage`; outputs `sortChange`, `pageChange`; **holds no state and issues no HTTP**
-- [ ] Controls, one per requirement: text input (`REQ-F-001`), `mat-select multiple` (`REQ-F-002`), `mat-date-range-input` (`REQ-F-003`), `mat-select` (`REQ-F-004`), `matSort` (`REQ-F-102`), `mat-table` (`REQ-F-103`), `mat-paginator` (`REQ-N-002`)
-- [ ] The three states, visually distinct: `mat-progress-bar` (`REQ-F-104`), an error block rendering the `errors` map field by field (`REQ-F-105`), an explicit no-results message (`REQ-F-106`)
-- [ ] A clear-filters control returning to the unfiltered state (`REQ-F-101`)
-- [ ] Hosts T9a's "logged in as `<username>` (`<role>`) · Logout" element (`[STAKEHOLDER #1]`); `REQ-F-010` is now demonstrated by logging out and back in as the other demo account, not by an in-page switcher
-- [ ] Flow: any filter / sort / page change → page resets to 1 on a filter change → debounce → request issued, superseding and cancelling any in flight
+- [x] `RequestSearchPageComponent` (stateful) — owns the filter form, sort state, page state, and the loading / error / results state; hosts the filter controls directly
+- [x] `RequestResultsTableComponent` (presentational) — inputs `rows`, `totalCount`, `page`, `pageSize`, `sortActive`/`sortDirection`, `loading`, `errorFields`; outputs `sortChange`, `pageChange`; **holds no state and issues no HTTP** — it forwards the raw `Sort`/`PageEvent` objects unmodified and lets the stateful page interpret them
+- [x] Controls, one per requirement: text input (`REQ-F-001`), `mat-select multiple` (`REQ-F-002`), `mat-date-range-input` (`REQ-F-003`), `mat-select` (`REQ-F-004`), `matSort` (`REQ-F-102`), `mat-table` (`REQ-F-103`), `mat-paginator` (`REQ-N-002`)
+- [x] The three states, visually distinct: `mat-progress-bar` (`REQ-F-104`), an error block rendering the `errors` map field by field (`REQ-F-105`), an explicit no-results message (`REQ-F-106`) — implemented as mutually exclusive `@if`/`@else if` branches in the table component, so only one is ever on screen at once
+- [x] A clear-filters control returning to the unfiltered state (`REQ-F-101`)
+- [x] Hosts T9a's "logged in as `<username>` (`<role>`) · Logout" element (`[STAKEHOLDER #1]`) — moved out of T9a's placeholder and into this page's own header; `REQ-F-010` is now demonstrated by logging out and back in as the other demo account, not by an in-page switcher
+- [x] Flow: any filter / sort / page change → page resets to 1 on a filter change → debounce → request issued, superseding and cancelling any in flight — **deviation, recorded**: only the *filter form* is debounced (300ms). Sort clicks and paginator clicks fire immediately, uncoalesced. The design text describes one merged flow; a literal reading would debounce paginator/sort clicks too, adding a perceptible delay to a deliberate single click that doesn't need coalescing the way a keystroke stream does. Cancellation-of-in-flight is `switchMap`, which covers all three sources regardless of debounce
 
 **Done when** — all four states seen against the running API:
 
-- [ ] **Loading** — the progress bar is visible while a request is in flight
-- [ ] **Results** — the paginator's page count reflects `totalCount`, not the 25 rows on screen
-- [ ] **Error** — `sortBy=ownerName` (or any 400) renders the field-level message, never a blank screen
-- [ ] **Empty** — a `requestNumber` filter that matches nothing (e.g. `999999`) shows the no-results message, clearly distinct from the other two. *(Revised from the original plan's "log in as an owner-of-nothing user": with real accounts, every seeded login owns something — a filter-driven empty result is the more direct demonstration of `REQ-F-106` regardless, since it does not depend on the permission boundary at all)*
-- [ ] Logging out and back in as the Administrator demo account changes the row count **and the total** on screen, versus the regular-user demo account — the decisive contrast of `REQ-F-010`, now driven by T9a's real login instead of a switcher
+- [x] **Loading** — the progress bar renders exclusively while a request is in flight (verified structurally via the mutually-exclusive `@if` chain; not separately screenshotted mid-flight since requests against local SQLite resolve in under a second)
+- [x] **Results** — verified: paginator shows "1 – 25 of 372" for `user`, "1 – 25 of 200000" for `admin` — the total, not the 25 rows on screen
+- [x] **Error** — verified: an inverted date range (`createdFrom` later than `createdTo`) renders `CreatedFrom: CreatedFrom cannot be later than CreatedTo.` in the error block, not a blank screen
+- [x] **Empty** — verified: `requestNumber=999999` shows "No requests match your filters."
+- [x] Logging out and back in as the Administrator demo account changes the row count **and the total** on screen, versus the regular-user demo account — verified: `user` → 372, `admin` → 200000, both against the same unfiltered query
 
 **Traps**
 
-- **The paginator is zero-based and the API is one-based** (§4). `PageEvent.pageIndex` is `0` on the first page, and `REQ-F-007` defines `page=0` as invalid input — so a direct binding opens the screen on a 400 before the user has touched anything. Convert in both directions: `page: pageIndex + 1` going out, `pageIndex: page - 1` coming back.
-- **A cleared sort sends no sort parameters at all** (§4). `matSort`'s third click emits `direction: ''`, which serialises to `sortDirection=` and is rejected with 400. Either set `matSortDisableClear`, or omit both `sortBy` and `sortDirection` when the direction is empty.
-- **Do not bind the table to `MatTableDataSource`'s client-side sort and paging.** It would sort the 25 rows already fetched instead of the 200,000 on the server — `REQ-N-001` and `REQ-N-002` break silently and the screen still looks right (§4, §3.5 rule 3).
-- **The paginator's `length` comes from the response `totalCount`.** Bound to `rows.length`, navigation shows one page regardless of the real result size (§4).
-- **A filter change that does not reset the page** leaves the user on page 40 of a three-page result, looking at the empty state (`REQ-N-002`).
-- Two components, not three. §3.5 records why the filter form is not split out.
+- **The paginator is zero-based and the API is one-based** (§4). `PageEvent.pageIndex` is `0` on the first page, and `REQ-F-007` defines `page=0` as invalid input — so a direct binding opens the screen on a 400 before the user has touched anything. Convert in both directions: `page: pageIndex + 1` going out, `pageIndex: page - 1` coming back. **Verified live**: clicking "Next page" issued `page=2`, not `page=1`.
+- **A cleared sort sends no sort parameters at all** (§4). `matSort`'s third click emits `direction: ''`, which serialises to `sortDirection=` and is rejected with 400. Either set `matSortDisableClear`, or omit both `sortBy` and `sortDirection` when the direction is empty. **Verified live**: clicked the Request Number header three times (asc → desc → clear); the third click's outgoing request carried only `page=1&pageSize=25`, no sort params.
+- **Do not bind the table to `MatTableDataSource`'s client-side sort and paging.** It would sort the 25 rows already fetched instead of the 200,000 on the server — `REQ-N-001` and `REQ-N-002` break silently and the screen still looks right (§4, §3.5 rule 3). Not applicable here — the table binds directly to `rows` (a plain array), with `matSort`/`mat-paginator` wired to emit events only, never to a `MatTableDataSource`.
+- **The paginator's `length` comes from the response `totalCount`.** Bound to `rows.length`, navigation shows one page regardless of the real result size (§4). Implemented as `[length]="totalCount"`.
+- **A filter change that does not reset the page** leaves the user on page 40 of a three-page result, looking at the empty state (`REQ-N-002`). Handled by the `tap` in the filter subscription, which sets `currentPage = 1` before the search fires.
+- Two components, not three. §3.5 records why the filter form is not split out. Followed — the filter controls live directly in `RequestSearchPageComponent`'s own template.
 
 ---
 
