@@ -30,20 +30,23 @@ Every task carries the same six fields.
 | T1 | Solution file and build baseline | `REQ-D-001` | 5m |
 | T2 | SQLite provider, schema, indexes, UTC converter | `REQ-N-001`, `REQ-N-003` | 20m |
 | T3 | 200,000-row seed | `REQ-N-001` | 15m |
+| T3a | Users entity, schema, and seed `[STAKEHOLDER #1]` | `REQ-F-011` | 20m |
 | T4 | Application contracts and validation | `REQ-F-001`–`REQ-F-007`, `REQ-N-002` | 20m |
 | T5 | Replace the interfaces; delete the obsolete tests | `REQ-F-010` | 10m |
 | T6 | `RequestRepository.SearchAsync` and sort mapping | `REQ-F-001`–`REQ-F-009`, `REQ-N-001` | 25m |
-| T7 | API: identity, controller, pipeline | `REQ-F-007`, `REQ-F-010` | 20m |
+| T7 | API: authentication, login, controller, pipeline | `REQ-F-007`, `REQ-F-010`–`REQ-F-013` | 35m |
 | T8 | Tests — six | `REQ-T-001` | 20m |
+| T8a | Authentication tests `[STAKEHOLDER #1]` | `REQ-F-012`, `REQ-F-013` | 15m |
 | T9 | Client: scaffold, configuration, API client | `REQ-F-107`, `REQ-D-002` | 20m |
+| T9a | Client: login page, route guard, auth interceptor `[STAKEHOLDER #1]` | `REQ-F-108`, `REQ-F-109` | 30m |
 | T10 | Client: search page, results table, three states | `REQ-F-101`–`REQ-F-106` | 30m |
 | T11 | Parts B and C document with diagrams | `REQ-A-001`, `REQ-A-002`, `REQ-C-001`, `REQ-D-013` | 20m |
 | T12 | README | `REQ-D-002`–`REQ-D-007` | 15m |
 | T13 | AI-usage | `REQ-D-008`–`REQ-D-012` | 10m |
 | T14 | Submission verification | `REQ-D-001`, `REQ-D-014` | 5m |
-| | | **Total** | **3h55m** |
+| | | **Total** | **5h15m** |
 
-**That total is over the three-hour box, and it is stated rather than smoothed.** The cut order below is how it fits.
+**That total is over the three-hour box, and it is stated rather than smoothed.** It grew by 1h20m — T3a + T7's delta + T8a + T9a — when `[STAKEHOLDER #1]` reversed the exclusion of authentication; that addition is deliberate and is not itself a candidate for the cut list below. The cut order below is how the rest fits.
 
 ### If the clock runs out
 
@@ -51,12 +54,12 @@ Cut in this order, from the top. Each cut is recoverable and each is already ant
 
 | Order | Cut | Costs | Why this one first |
 |---|---|---|---|
-| 1 | T8 down to the two permission tests | Four of six tests | The brief marks tests optional (`REQ-T-001` notes this). The two permission tests are the decisive acceptance test in `REQ-F-010` and are the two that must survive |
+| 1 | T8 down to the two permission tests, and T8a's two authentication tests with it | Four of six T8 tests, plus both of T8a's | The brief marks tests optional (`REQ-T-001` notes this), and nothing in `[STAKEHOLDER #1]` says otherwise. The two permission tests are the decisive acceptance test in `REQ-F-010` and are the two that must survive |
 | 2 | T10's Angular Material for native form controls | Polish, not capability | `REQ-F-101`–`REQ-F-106` are satisfiable with native `input`, `select multiple` and `table`. ADR-005 chose Material for convenience, not for correctness |
-| 3 | T3 down to a 5,000-row seed | The `EXPLAIN QUERY PLAN` evidence for `REQ-N-001` | §3.3 already says the seed *demonstrates*, and the *design* is what holds at millions. The README says which was measured and which was reasoned |
+| 3 | T3 (and T3a) down to a 5,000-row seed, with a proportionally smaller `Users` seed | The `EXPLAIN QUERY PLAN` evidence for `REQ-N-001` | §3.3 already says the seed *demonstrates*, and the *design* is what holds at millions. The README says which was measured and which was reasoned. T3a's FK means the two shrink together |
 | 4 | T9's `site.config.json` for a constant in `environment.ts` | Retargeting a built bundle | ADR-007 records this exact fallback: "the token stays and only its provider changes, from a constant to an initialiser" |
 
-**Never cut:** server-side permission enforcement (`REQ-F-010`), strict input rejection (`REQ-F-007`), paging (`REQ-N-002`), T11, T12, T13. The last three are mandatory deliverables and are the cheapest marks in the exam.
+**Never cut:** server-side permission enforcement (`REQ-F-010`), **the JWT pipeline and login screen that make that enforcement real (`REQ-F-011`–`REQ-F-013`, `REQ-F-108`, `REQ-F-109` — T3a, T7, T9a)**: a half-built login flow leaves no way to reach the API at all, which is worse than not attempting `[STAKEHOLDER #1]`. Also never cut: strict input rejection (`REQ-F-007`), paging (`REQ-N-002`), T11, T12, T13. The last three are mandatory deliverables and are the cheapest marks in the exam.
 
 **Whatever is cut is written into the README under `REQ-D-007`** — what was not completed, and how the work would have continued. An undocumented cut is the only kind that costs anything.
 
@@ -80,10 +83,10 @@ Recorded rather than applied silently. None of them changes a decision.
 
 **Files** — `CandidateTest.sln` *(new, repo root)*
 
-- [ ] `dotnet new sln -n CandidateTest`
-- [ ] Add all five projects: the four under `src/` and `tests/Requests.Tests/Requests.Tests.csproj`
-- [ ] `dotnet build`
-- [ ] `dotnet test`
+- [x] `dotnet new sln -n CandidateTest`
+- [x] Add all five projects: the four under `src/` and `tests/Requests.Tests/Requests.Tests.csproj`
+- [x] `dotnet build`
+- [x] `dotnet test`
 
 **Done when** — both commands succeed from the repo root.
 
@@ -110,9 +113,9 @@ dotnet sln add src/Requests.Domain/Requests.Domain.csproj src/Requests.Applicati
 | `src/Requests.Infrastructure/Persistence/RequestsDbContext.cs` | Add `OnModelCreating` |
 | `src/Requests.Api/Program.cs` | Pass configuration; `EnsureCreated()` before seeding |
 
-- [ ] Swap the provider package, then `UseSqlite(configuration.GetConnectionString("RequestsDb"))`
-- [ ] `appsettings.json`: `ConnectionStrings:RequestsDb` = `Data Source=requests.db`, and `Cors:AllowedOrigins` = `[ "http://localhost:4200" ]` (consumed in T7 — created here so the file is written once)
-- [ ] `OnModelCreating` — the four indexes of §3.3, shaped to the queries actually issued:
+- [x] Swap the provider package, then `UseSqlite(configuration.GetConnectionString("RequestsDb"))`
+- [x] `appsettings.json`: `ConnectionStrings:RequestsDb` = `Data Source=requests.db`, and `Cors:AllowedOrigins` = `[ "http://localhost:4200" ]` (consumed in T7 — created here so the file is written once)
+- [x] `OnModelCreating` — the four indexes of §3.3, shaped to the queries actually issued:
 
 ```csharp
 b.HasIndex(x => new { x.OwnerId, x.CreatedAt });          // permission path + default order
@@ -123,7 +126,7 @@ b.HasIndex(x => x.RequestNumber);                         // exact lookups; REQ-
 
 > **Do not add single-column indexes on `Status` or `RequestType`**, and if they appear from habit, delete them. §3.3 records the measurement: with them present the planner abandons the permission path the moment a status filter is applied, and the filtered search costs 41 ms instead of 0.4 ms.
 
-- [ ] `OnModelCreating` — the UTC converter on **both** `DateTime` properties:
+- [x] `OnModelCreating` — the UTC converter on **both** `DateTime` properties:
 
 ```csharp
 var utc = new ValueConverter<DateTime, DateTime>(
@@ -133,12 +136,12 @@ b.Property(x => x.CreatedAt).HasConversion(utc);
 b.Property(x => x.UpdatedAt).HasConversion(utc);
 ```
 
-- [ ] `Program.cs`: `db.Database.EnsureCreated();` **before** `DbSeeder.Seed(db);`
+- [x] `Program.cs`: `db.Database.EnsureCreated();` **before** `DbSeeder.Seed(db);`
 
 **Done when**
 
-- [ ] The API starts and `src/Requests.Api/requests.db` is created (the connection string is relative to the process working directory)
-- [ ] `git status` stays clean — `*.db` is already in `.gitignore`
+- [x] The API starts and `src/Requests.Api/requests.db` is created (the connection string is relative to the process working directory)
+- [x] `git status` stays clean — `*.db` is already in `.gitignore`
 
 **Traps**
 
@@ -156,8 +159,8 @@ b.Property(x => x.UpdatedAt).HasConversion(utc);
 
 **Files** — `src/Requests.Infrastructure/Persistence/DbSeeder.cs` *(rewrite the body; keep the guard)*
 
-- [ ] **Keep `if (db.Requests.Any()) return;`** — unchanged, first line
-- [ ] Replace `AddRange` with one `ExecuteSqlRaw` over a recursive CTE:
+- [x] **Keep `if (db.Requests.Any()) return;`** — unchanged, first line
+- [x] Replace `AddRange` with one `ExecuteSqlRaw` over a recursive CTE:
 
 ```sql
 INSERT INTO Requests
@@ -178,9 +181,9 @@ FROM seq;
 
 **Done when**
 
-- [ ] First start completes in **a few seconds** — about seven, measured; every row also updates four indexes — and `SELECT COUNT(*) FROM Requests` returns `200000`
-- [ ] **Second start leaves the count unchanged** — this is the guard doing its job
-- [ ] `SELECT COUNT(*) FROM Requests WHERE OwnerId = 1 OR AssignedToUserId = 1` returns **372**. A number in the tens of thousands means the owner spread was left at the supplied seed's five identifiers, and the permission path is no longer selective (§3.3)
+- [x] First start completes in **a few seconds** — about seven, measured; every row also updates four indexes — and `SELECT COUNT(*) FROM Requests` returns `200000`
+- [x] **Second start leaves the count unchanged** — this is the guard doing its job
+- [x] `SELECT COUNT(*) FROM Requests WHERE OwnerId = 1 OR AssignedToUserId = 1` returns **372**. A number in the tens of thousands means the owner spread was left at the supplied seed's five identifiers, and the permission path is no longer selective (§3.3)
 
 **Traps**
 
@@ -189,7 +192,47 @@ FROM seq;
 - **Seeded dates are relative to the moment of seeding** (`datetime('now', …)`), so the data ages with the file. **No test and no README example may assert against an absolute date** (§3.3).
 - `datetime()` emits `YYYY-MM-DD HH:MM:SS`, which is what EF's SQLite reader expects. A hand-rolled ISO string with a `T` or a `Z` is not.
 
-> **Useful consequence for demos:** every identifier from 1 to 1000 owns exactly 200 requests, so `X-User-Id: 1` sees **372** (200 owned, the rest assigned) while `X-Is-Admin: true` sees **200,000** — the decisive contrast of `REQ-F-010`, on one screen. Any identifier **above 1000** — use `X-User-Id: 5000` — owns nothing and sees nothing, which is the empty state of `REQ-F-106` on demand. Note this differs from the supplied seed, where ids 1–5 held everything.
+> **Useful consequence for demos, as originally built:** every identifier from 1 to 1000 owns exactly 200 requests, so identifier 1 as a regular user sees **372** (200 owned, the rest assigned) while the same query as an Administrator sees **200,000** — the decisive contrast of `REQ-F-010`, on one screen. Any identifier **above 1000** owns nothing and sees nothing, which is the empty state of `REQ-F-106` on demand.
+>
+> **Superseded by `[STAKEHOLDER #1]` (T3a).** The header-based demo (`X-User-Id` / `X-Is-Admin`) this note describes is replaced by real login — see T3a and T7. The 1-to-1000 spread and the "372 / 200,000" contrast are still the intended shape of the demo, now reached by logging in as two different seeded accounts rather than by setting headers. **Id 1's 372 is unaffected — the `Requests` CTE formula above is untouched by T3a and reproduces it exactly.** What is genuinely unmeasured is **id 2's** count: this design only ever needed one regular-user identity before (toggled to Administrator by a header flag on that same id), never a second one, so id 2 was never computed. Measure it in T3a rather than assuming it is also 372.
+
+---
+
+## T3a — Users entity, schema, and seed
+
+**Serves** `REQ-F-011`, `REQ-N-001` · **Design** ADR-010, §3.1, §3.3 · **`[STAKEHOLDER #1]`**
+
+**Files**
+
+| File | Change |
+|---|---|
+| `src/Requests.Domain/Entities/User.cs` | **New** — `Id`, `Username`, `PasswordHash`, `Role` |
+| `src/Requests.Domain/Entities/UserRole.cs` | **New** — enum `User`, `Administrator` |
+| `src/Requests.Infrastructure/Persistence/RequestsDbContext.cs` | Add `DbSet<User> Users`; map `Username` unique; FK `Request.OwnerId`/`AssignedToUserId` → `Users.Id`, no navigation property either direction (ADR-010) |
+| `src/Requests.Infrastructure/Persistence/DbSeeder.cs` | Seed `Users` **before** `Requests`, inside the existing guard |
+
+- [ ] `OnModelCreating`: `b.Entity<User>().HasIndex(x => x.Username).IsUnique();` and the two FK configurations for `Request`
+- [ ] Extend the seeder's guard to `if (db.Users.Any() || db.Requests.Any()) return;` — a second start must re-seed neither table
+- [ ] Bulk-insert 1,000 `Users` rows with the same recursive-CTE technique as T3's `Requests` insert
+- [ ] Additionally seed ids `1` and `2` with a real, documented username and a password hashed through `IPasswordHasher` (built in T7) — id 1 = `Administrator`, id 2 = `User`. **If T7 has not been built yet when this task runs, stub the hasher call or sequence T3a after T7's `IPasswordHasher` exists** — the two tasks are not strictly build-ordered otherwise, but this one line is
+- [ ] Delete `requests.db` before the next run — this is a model change (§4's standing trap), and it is the file T3 already produced without a `Users` table
+
+**Done when**
+
+- [ ] `SELECT COUNT(*) FROM Users` returns `1000`
+- [ ] A second start leaves both counts unchanged
+- [ ] `SELECT Username FROM Users WHERE Id IN (1,2)` returns the two documented demo accounts
+- [ ] `SELECT COUNT(*) FROM Requests WHERE OwnerId = 1 OR AssignedToUserId = 1` still returns **372** — confirms the `Requests` CTE was untouched by this task
+- [ ] `SELECT COUNT(*) FROM Requests WHERE OwnerId = 2 OR AssignedToUserId = 2` — record whatever this returns; it was never measured before (id 2 is new to this task) and becomes the expected total for the regular-user demo login in T7/T9a/T10
+- [ ] **The FK is actually enforced, not just declared.** Attempt `INSERT INTO Requests (..., OwnerId, ...) VALUES (..., 999999, ...)` (an id no `User` row has) directly against `requests.db` and confirm it is **rejected**. ADR-010 calls this "a real foreign key" — this line is what makes that true rather than assumed; EF Core's SQLite provider is expected to enable `PRAGMA foreign_keys` by default, but nothing in this design checked that until now
+- [ ] `dotnet build` succeeds with the new FK in place
+
+**Traps**
+
+- **Seed `Users` first.** The FK on `Request.OwnerId`/`AssignedToUserId` depends on it; reversing the order fails the insert or (if FK enforcement is off) silently leaves orphaned references.
+- **This invalidates T3's `requests.db`.** Regenerate it — do not debug "missing column" errors against the old file (ADR-010, §4).
+- **Do not add navigation properties.** `Request` stays exactly as wide as before; only a schema-level FK is added (ADR-010).
+- **Id 1's 372 should reproduce exactly** — the `Requests` CTE is unchanged, so this is a check, not a re-measurement. If it comes out different, something in this task changed the `Requests` insert and that is the bug to chase, not a seed quirk to shrug off. **Id 2's count has no prior value to match against** — whatever it measures to is correct; do not "fix" it to look like 372.
 
 ---
 
@@ -334,49 +377,65 @@ USE TEMP B-TREE FOR ORDER BY
 
 ---
 
-## T7 — API: identity, controller, pipeline
+## T7 — API: authentication, login, controller, pipeline
 
-**Serves** `REQ-F-007`, `REQ-F-010`, `REQ-F-103`, `REQ-D-002` · **Design** §3.4, §3.4a, ADR-002, ADR-004, §4
+**Serves** `REQ-F-007`, `REQ-F-010`–`REQ-F-013`, `REQ-F-103`, `REQ-D-002` · **Design** §3.4, §3.4a, ADR-004, ADR-008, ADR-009, §4 · **Rewritten for `[STAKEHOLDER #1]`** — the header scheme this task originally specified (ADR-002) was never built; this replaces that plan, not built code
 
 **Files**
 
 | File | Change |
 |---|---|
-| `src/Requests.Api/Authentication/HeaderAuthenticationHandler.cs` | **New** — `AuthenticationHandler<AuthenticationSchemeOptions>` over `X-User-Id` / `X-Is-Admin` |
-| `src/Requests.Api/Authentication/ClaimsCurrentUserAccessor.cs` | **New** — `ICurrentUser` over `HttpContext.User` |
-| `src/Requests.Api/Controllers/RequestsController.cs` | `[Authorize]`; one `[HttpGet]` taking `[FromQuery] RequestSearchQuery`; **`ParseUserId` and both header reads deleted** |
-| `src/Requests.Api/Program.cs` | Authentication, authorization, CORS, `JsonStringEnumConverter`, `IHttpContextAccessor` |
+| `src/Requests.Application/Auth/IAuthService.cs`, `AuthService.cs` | **New** — `LoginAsync(LoginCommand) → LoginResult?`; orchestrates the three files below. Plain class, no mediator (§3.2) |
+| `src/Requests.Infrastructure/Auth/PasswordHasher.cs` | **New** — `IPasswordHasher` wrapping `PasswordHasher<User>` (ADR-009) |
+| `src/Requests.Infrastructure/Auth/JwtTokenGenerator.cs` | **New** — `IJwtTokenGenerator`, signs a token with `NameIdentifier` and `Role` claims from `Jwt:Key`/`Issuer`/`Audience`/`ExpiryMinutes` (ADR-008) |
+| `src/Requests.Infrastructure/Repositories/UserRepository.cs` | **New** — `IUserRepository.FindByUsernameAsync` |
+| `src/Requests.Api/Controllers/AuthController.cs` | **New** — `[AllowAnonymous]`, `[HttpPost("login")]`; injects **only** `IAuthService`, same shape as `RequestsController` (ADR-008) |
+| `src/Requests.Api/Controllers/RequestsController.cs` | `[Authorize]`; one `[HttpGet]` taking `[FromQuery] RequestSearchQuery` — **unchanged from the original plan; it never depended on how identity arrived** |
+| `src/Requests.Api/Program.cs` | `AddAuthentication().AddJwtBearer(...)`, authorization, CORS, `JsonStringEnumConverter`, `Jwt` options binding |
+| `src/Requests.Api/appsettings.json` | **New `Jwt` section** — `Key`, `Issuer`, `Audience`, `ExpiryMinutes` |
 
-- [ ] Handler: header absent → `AuthenticateResult.NoResult()`; header present but unparseable → `AuthenticateResult.Fail(...)`. Under `[Authorize]` both end as **401**. `X-Is-Admin: true` adds `ClaimTypes.Role = "Administrator"`; the user id becomes `ClaimTypes.NameIdentifier`
-- [ ] `ClaimsCurrentUserAccessor` reads those two claims and nothing else
-- [ ] `Program.cs`: `AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))`; CORS policy from `Cors:AllowedOrigins`; `UseCors` **after** `UseRouting` and **before** `UseAuthentication`/`UseAuthorization`
+> `ClaimsCurrentUserAccessor.cs` is **not in this table on purpose** — ADR-008 confirms it is unchanged. It still reads `ClaimTypes.NameIdentifier` and `ClaimTypes.Role` off `HttpContext.User`; only what populates `HttpContext.User` (JWT bearer instead of a header handler) is different.
 
-**Done when** — every line below behaves as stated. These are `REQ-F-007` and `REQ-F-010` in executable form.
+- [ ] `AuthService.LoginAsync`: find the user by username (`IUserRepository`) → if found, verify the password (`IPasswordHasher`) → on success, issue a token (`IJwtTokenGenerator`) and return `LoginResult` with `Token`, `ExpiresAt`, `Role`, **and `Username`** (§3.2). Any failure — user not found, or `PasswordHasher<User>.VerifyHashedPassword` returns anything but `Success` — returns `null`; **never** a raw `==` on hashes (§4)
+- [ ] `AuthController.Login`: `null` from `AuthService` → the same generic 401 for both "unknown username" and "wrong password" (`REQ-F-012`) — the controller does not know or care which one happened, because `AuthService` already collapsed them
+- [ ] `JwtTokenGenerator`: claims are `ClaimTypes.NameIdentifier` (user id) and `ClaimTypes.Role` (`"User"` or `"Administrator"`); expiry from `Jwt:ExpiryMinutes` (`REQ-N-005`)
+- [ ] `Program.cs`: `AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o => { o.TokenValidationParameters = new() { ValidateIssuer = true, ValidIssuer = jwt.Issuer, ValidateAudience = true, ValidAudience = jwt.Audience, ValidateLifetime = true, IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)), ClockSkew = TimeSpan.Zero }; })` — **every one of these five fields matters** (ADR-008); `AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))`; CORS policy from `Cors:AllowedOrigins`; `UseCors` **after** `UseRouting` and **before** `UseAuthentication`/`UseAuthorization`
+
+**Done when** — every line below behaves as stated. These are `REQ-F-007`, `REQ-F-012` and `REQ-F-013` in executable form. `$USER_TOKEN`/`$ADMIN_TOKEN` are the `token` field from the two login calls, using the two demo accounts T3a seeded.
 
 ```bash
-curl.exe -i "http://localhost:60702/api/requests"                                        # 401, no identity
-curl.exe -s "http://localhost:60702/api/requests" -H "X-User-Id: 1"                      # 200, totalCount = 372
-curl.exe -s "http://localhost:60702/api/requests" -H "X-User-Id: 1" -H "X-Is-Admin: true" # 200, totalCount = 200000
-curl.exe -s "http://localhost:60702/api/requests?status=99"       -H "X-User-Id: 1"      # 400, errors.status
-curl.exe -s "http://localhost:60702/api/requests?sortBy=ownerName" -H "X-User-Id: 1"     # 400, errors.sortBy
-curl.exe -s "http://localhost:60702/api/requests?pageSize=101"    -H "X-User-Id: 1"      # 400, errors.pageSize
-curl.exe -s "http://localhost:60702/api/requests?createdFrom=2026-09-01&createdTo=2026-01-01" -H "X-User-Id: 1"  # 400
-curl.exe -s "http://localhost:60702/api/requests?page=100000"     -H "X-User-Id: 1"      # 200, items [], totalCount correct
-curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-User-Id: 1" # matches REQ-000123 mid-string
+curl.exe -s -X POST "http://localhost:60702/api/auth/login" -H "Content-Type: application/json" -d "{\"username\":\"<admin demo>\",\"password\":\"<seeded>\"}"  # 200, token + username + role "Administrator"
+curl.exe -s -X POST "http://localhost:60702/api/auth/login" -H "Content-Type: application/json" -d "{\"username\":\"<admin demo>\",\"password\":\"wrong\"}"      # 401, generic message
+curl.exe -s -X POST "http://localhost:60702/api/auth/login" -H "Content-Type: application/json" -d "{\"username\":\"nobody\",\"password\":\"x\"}"                # 401, the SAME generic message
+
+curl.exe -i "http://localhost:60702/api/requests"                                                            # 401, no token
+curl.exe -s "http://localhost:60702/api/requests" -H "Authorization: Bearer %USER_TOKEN%"                   # 200, regular-user total (re-measured in T3a)
+curl.exe -s "http://localhost:60702/api/requests" -H "Authorization: Bearer %ADMIN_TOKEN%"                  # 200, totalCount = 200000
+curl.exe -s "http://localhost:60702/api/requests?status=99"        -H "Authorization: Bearer %USER_TOKEN%"  # 400, errors.status
+curl.exe -s "http://localhost:60702/api/requests?sortBy=ownerName" -H "Authorization: Bearer %USER_TOKEN%"  # 400, errors.sortBy
+curl.exe -s "http://localhost:60702/api/requests?pageSize=101"     -H "Authorization: Bearer %USER_TOKEN%"  # 400, errors.pageSize
+curl.exe -s "http://localhost:60702/api/requests?createdFrom=2026-09-01&createdTo=2026-01-01" -H "Authorization: Bearer %USER_TOKEN%"  # 400
+curl.exe -s "http://localhost:60702/api/requests?page=100000"      -H "Authorization: Bearer %USER_TOKEN%"  # 200, items [], totalCount correct
+curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "Authorization: Bearer %USER_TOKEN%" # matches REQ-000123 mid-string
 ```
 
-- [ ] The two identity lines return **different result sets and different totals** — the decisive acceptance test of `REQ-F-010`
+- [ ] The regular-user and Administrator tokens return **different result sets and different totals** — the decisive acceptance test of `REQ-F-010`, now demonstrated through real login instead of a header value
 - [ ] `status` renders as `"InProgress"`, not `2`
 - [ ] Timestamps end in `Z`
-- [ ] Swagger still loads at `/swagger`. **Its "Try it out" will return 401**, because the UI sends no identity headers — expected, and worth one line in the README so a reviewer does not read it as a broken endpoint
+- [ ] Swagger still loads at `/swagger`, and its "Authorize" button accepts a bearer token pasted from a login call — worth one line in the README so a reviewer knows how to drive it
 
 **Traps**
 
-- **Delete `ParseUserId`.** Its `int.TryParse(...) ? userId : 1` fallback silently assigns identity to user 1 and makes `REQ-F-010`'s decisive test meaningless — it is the specific defect ADR-002 was written against.
+- **The two login-failure branches must return the identical body.** A different message for "unknown user" versus "wrong password" leaks which usernames exist — exactly what `REQ-F-012`'s acceptance criterion forbids.
+- **Verify through `IPasswordHasher.Verify`, never `hash == storedHash`.** `PasswordHasher<T>` salts its output, so the same password hashes differently each time; a direct comparison rejects every correct password (§4).
+- **`Jwt:Key` must be ≥ 256 bits for HS256** (§4) — a short key throws at startup, not at first login, which is a confusing place to first see it.
+- **`ClockSkew = TimeSpan.Zero` is not optional** (ADR-008, §4). The default 5-minute tolerance lets a token expired by less than that still validate — T8a's expired-token test would then get 200 instead of 401, and appear to pass for the wrong reason.
+- **Set `ValidateIssuer`/`ValidateAudience`/`ValidateLifetime` explicitly.** Leaving any at their default disables that check silently — a token would validate on signature alone, which is weaker than `REQ-N-005` intends.
 - **Register `IHttpContextAccessor`**, or `ClaimsCurrentUserAccessor` resolves a null context at runtime only.
 - **Without `JsonStringEnumConverter` the table renders `Status: 2`** and the client's string unions never match (§4).
-- **The CORS policy must allow the identity headers, not only the origin** (§4). `X-User-Id` is a custom header, so every call becomes a preflighted request; a policy with `WithOrigins(...)` alone returns no `Access-Control-Allow-Headers` and the browser blocks it. Add `AllowAnyHeader()` or name them explicitly. **Every `curl` line above will still pass** — this failure exists only in a browser, and surfaces in T9 as an unexplained network error against a server that all its own tests just cleared.
+- **The CORS policy must allow the `Authorization` header, not only the origin** (§4). A bearer token makes every call a preflighted request; a policy with `WithOrigins(...)` alone returns no `Access-Control-Allow-Headers` and the browser blocks it. **Every `curl` line above will still pass** — this failure exists only in a browser, and surfaces in T9a as an unexplained network error against a server that all its own tests just cleared.
 - `UseCors` placed after `UseAuthorization` fails the preflight the same way, and just as invisibly.
+- **T3a's demo passwords must actually be seeded through `IPasswordHasher` built here.** If T3a ran first with a stub, come back and re-seed once this task's hasher exists (T3a's own trap list says the same thing from the other side).
 
 ---
 
@@ -420,6 +479,29 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 
 ---
 
+## T8a — Authentication tests
+
+**Serves** `REQ-F-012`, `REQ-F-013` · **Design** §3.6 · **`[STAKEHOLDER #1]`**
+
+Kept separate from T8's six — they test the auth pipeline (T7), not the search feature, and T8's "why these six" reasoning is specifically about search. Both run through `WebApplicationFactory<Program>`, since `REQ-F-012`/`REQ-F-013` are pipeline behaviour, not repository behaviour.
+
+**Files** — `tests/Requests.Tests/AuthTests.cs` *(new)*
+
+- [ ] Login with the seeded Administrator's correct credentials → 200 with a non-empty `token`
+- [ ] Login with a wrong password → 401 with the generic message; login with an unknown username → the **same** 401 body (asserted equal, not just both 401 — this is what actually tests `REQ-F-012`'s no-enumeration criterion)
+- [ ] `GET /api/requests` with no `Authorization` header → 401
+- [ ] `GET /api/requests` with a well-formed but expired token (construct one directly with `JwtTokenGenerator` and a negative expiry, rather than waiting out a real one) → 401. **This only works because T7 sets `ClockSkew = TimeSpan.Zero`** — with the library's 5-minute default, a token expired by 1 second would still validate and this assertion would fail for the wrong reason
+- [ ] `GET /api/requests` with a valid token → 200
+
+**Done when** — `dotnet test` reports **8 passed** (T8's six plus these two), and passes again on a second run.
+
+**Traps**
+
+- **Asserting "401" for both wrong-password and unknown-username is not enough.** Assert the response **bodies are identical** — that is the actual content of `REQ-F-012`'s criterion, and a test that only checks the status code would pass even if the two cases leaked different messages.
+- **Do not wait out a real token expiry.** Construct an already-expired one directly, or the test suite gains a multi-minute sleep.
+
+---
+
 # Phase B — Client
 
 ## T9 — Scaffold, configuration, API client
@@ -434,8 +516,9 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 - [ ] Wire the initialiser in `app.config.ts` so the application does not render until configuration has loaded
 - [ ] `core/models/` — `request.model.ts`, `search-query.model.ts`, `paged-result.model.ts`, mirroring §3.4a exactly. Enumerations are **string unions**, not numbers
 - [ ] `core/services/requests-api.service.ts` — one `search(query)` method building the query string per §3.4a
-- [ ] `core/services/current-user.service.ts` + `core/interceptors/identity.interceptor.ts`, registered via `provideHttpClient(withInterceptors([...]))`
 - [ ] `provideNativeDateAdapter()` in `app.config.ts`
+
+> `core/services/auth.service.ts`, `core/interceptors/auth.interceptor.ts` and `core/guards/auth.guard.ts` are **not** built here — they move to T9a as their own task (`[STAKEHOLDER #1]` replaces the `current-user.service.ts` + `identity.interceptor.ts` this step originally specified, before either was built).
 
 **Done when**
 
@@ -448,8 +531,44 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 - **Repeated `status` parameters use `params.append`, not `params.set`.** `set` keeps only the last value and multi-select silently filters by one status (§3.4a).
 - **Format dates as local `yyyy-MM-dd`, never `toISOString().slice(0,10)`.** The range picker yields local midnight; at UTC+3 `toISOString` moves it to the previous day, and the user sees a range shifted by one day with no error. This is the client-side twin of §4's "incoming date bounds are normalised to UTC".
 - **A configuration load failure is a startup error, not a fallback to some default address** (ADR-007).
-- **Load `site.config.json` through `HttpBackend`, not the intercepted `HttpClient`.** Otherwise the identity interceptor decorates a static-asset request with `X-User-Id`, and the moment the interceptor needs anything from configuration the bootstrap becomes circular.
+- **Load `site.config.json` through `HttpBackend`, not the intercepted `HttpClient`.** Once T9a's auth interceptor exists, it would otherwise decorate a static-asset request with a stale or absent `Authorization` header, and the moment the interceptor needs anything from configuration the bootstrap becomes circular.
 - **Without `provideNativeDateAdapter` the date-range input fails at runtime only** (§4).
+
+---
+
+## T9a — Login page, route guard, auth interceptor
+
+**Serves** `REQ-F-108`, `REQ-F-109` · **Design** ADR-008, §3.5 · **`[STAKEHOLDER #1]`**
+
+**Files** — new, under `frontend/src/app/`
+
+| File | Change |
+|---|---|
+| `core/models/user.model.ts` | **New** — the login response shape: `token`, `username`, `role`, `expiresAt` (mirrors §3.4a exactly — nothing here is decoded from the JWT) |
+| `core/services/auth.service.ts` | **New** — `login()`, `logout()`, the current `token`/`username`/`role`, `isAuthenticated()`; persists to `sessionStorage` (ADR-008) |
+| `core/interceptors/auth.interceptor.ts` | **New** — attaches `Authorization: Bearer <token>`; on a `401` response, calls `AuthService.logout()` |
+| `core/guards/auth.guard.ts` | **New** — functional guard; no valid session → redirect to `/login` |
+| `features/login/login-page/` | **New** — `LoginPageComponent`: username/password form, calls `AuthService.login()`, shows the login error |
+| `app.routes.ts` | Add `/login` (no guard); guard the request-search route |
+
+- [ ] `AuthService.login()` stores `token`, `username`, `role`, `expiresAt` **read directly off the `POST /api/auth/login` response body** (§3.4a) into `sessionStorage` — no JWT decoding anywhere on the client
+- [ ] `auth.interceptor.ts` skips the login request itself (no token to attach yet) and the `site.config.json` fetch (T9's trap)
+- [ ] `LoginPageComponent`: on a 401 from login, show the server's generic message (`REQ-F-108`); on success, navigate to the search page
+- [ ] A visible "logged in as `<username>` (`<role>`) · Logout" element, reading `AuthService.username`/`role` directly, placed wherever T10's search page hosts it
+
+**Done when**
+
+- [ ] Visiting the search route while logged out redirects to `/login`
+- [ ] Logging in with each of T3a's two demo accounts, in turn, reaches the search page and every subsequent API call carries that account's token
+- [ ] Logging in with a wrong password shows the error and does not navigate
+- [ ] Logout clears the session and returns to `/login`; the guard then blocks the search route again
+
+**Traps**
+
+- **The interceptor must not attach a token to the login request.** A stale token on `POST /api/auth/login` is harmless to the server (the endpoint is `[AllowAnonymous]`) but signals a bug if it happens.
+- **`username`/`role` come from the response body, never from decoding the token.** The server re-derives the real role from the token's claims on every request (`REQ-F-010`) — the client's copy is a display convenience, not an enforcement point, and decoding it client-side would be an unnecessary dependency for a value the response already hands over.
+- **`sessionStorage`, not `localStorage`** (ADR-008) — carries across a reload within the tab, clears on tab close.
+- **A 401 from an expired token must route through `logout()`, not just fail silently.** Otherwise the search page shows T10's error state forever instead of returning to `/login` (`REQ-F-109`).
 
 ---
 
@@ -464,7 +583,7 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 - [ ] Controls, one per requirement: text input (`REQ-F-001`), `mat-select multiple` (`REQ-F-002`), `mat-date-range-input` (`REQ-F-003`), `mat-select` (`REQ-F-004`), `matSort` (`REQ-F-102`), `mat-table` (`REQ-F-103`), `mat-paginator` (`REQ-N-002`)
 - [ ] The three states, visually distinct: `mat-progress-bar` (`REQ-F-104`), an error block rendering the `errors` map field by field (`REQ-F-105`), an explicit no-results message (`REQ-F-106`)
 - [ ] A clear-filters control returning to the unfiltered state (`REQ-F-101`)
-- [ ] An identity switcher driving `CurrentUserService`, so `REQ-F-010` can be demonstrated live
+- [ ] Hosts T9a's "logged in as `<username>` (`<role>`) · Logout" element (`[STAKEHOLDER #1]`); `REQ-F-010` is now demonstrated by logging out and back in as the other demo account, not by an in-page switcher
 - [ ] Flow: any filter / sort / page change → page resets to 1 on a filter change → debounce → request issued, superseding and cancelling any in flight
 
 **Done when** — all four states seen against the running API:
@@ -472,8 +591,8 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 - [ ] **Loading** — the progress bar is visible while a request is in flight
 - [ ] **Results** — the paginator's page count reflects `totalCount`, not the 25 rows on screen
 - [ ] **Error** — `sortBy=ownerName` (or any 400) renders the field-level message, never a blank screen
-- [ ] **Empty** — switching to user 5000, who owns nothing, shows the no-results message, clearly distinct from the other two
-- [ ] Switching identity to Administrator changes the row count **and the total** on screen
+- [ ] **Empty** — a `requestNumber` filter that matches nothing (e.g. `999999`) shows the no-results message, clearly distinct from the other two. *(Revised from the original plan's "log in as an owner-of-nothing user": with real accounts, every seeded login owns something — a filter-driven empty result is the more direct demonstration of `REQ-F-106` regardless, since it does not depend on the permission boundary at all)*
+- [ ] Logging out and back in as the Administrator demo account changes the row count **and the total** on screen, versus the regular-user demo account — the decisive contrast of `REQ-F-010`, now driven by T9a's real login instead of a switcher
 
 **Traps**
 
@@ -511,24 +630,28 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "X-Use
 
 ## T12 — README
 
-**Serves** `REQ-D-002`–`REQ-D-007` · **Design** §5 step 8, ADR-001, ADR-002, ADR-006, ADR-007
+**Serves** `REQ-D-002`–`REQ-D-007` · **Design** §5 step 8, ADR-001, ADR-002 *(superseded)*, ADR-006, ADR-007, ADR-008, ADR-009, ADR-010
 
 **Files** — `README.md` *(new, repo root)*
 
 One section per requirement, so the matrix is checkable by reading:
 
-- [ ] **How to run** backend and frontend (`REQ-D-002`) — including where the API address is changed
-- [ ] **How to run the tests** (`REQ-D-003`)
+- [ ] **How to run** backend and frontend (`REQ-D-002`) — including where the API address is changed, and the two demo logins from T3a (username/password for the Administrator and regular-user accounts) so a reviewer can actually sign in
+- [ ] **How to run the tests** (`REQ-D-003`) — now **8** (T8's six plus T8a's two)
 - [ ] **Technologies and why** (`REQ-D-004`) — SQLite in place of the supplied InMemory provider needs its justification here (ADR-001), as does Angular (ADR-005)
-- [ ] **Assumptions** (`REQ-D-005`) — its acceptance criterion is that **every `[DERIVED]` requirement appears with its rationale**. That is `REQ-N-002` (paging) and `REQ-N-003` (time handling). Plus:
+- [ ] **Assumptions** (`REQ-D-005`) — its acceptance criterion is that **every `[DERIVED]` requirement appears with its rationale**. That is `REQ-N-002` (paging) and `REQ-N-003` (time handling) — `[STAKEHOLDER #1]`'s requirements are a separate category (see below) and do not count against this criterion. Plus:
   - case handling on the partial match follows the store's collation and is **unspecified** (ADR-006)
-  - the header identity scheme is **not secure**, and why that is acceptable here (ADR-002)
+  - **the `Jwt:Key` in `appsettings.json` is a development convenience, committed only because this is a seeded demo database, and why that is not a production posture** (ADR-008 — this replaces the old "header scheme is not secure" note, which described a scheme that was never built)
+  - password verification uses `PasswordHasher<User>` rather than full ASP.NET Core Identity, and why (ADR-009)
+  - tokens are signed **HS256**, not RS256, because nothing outside this one service verifies a token yet — and RS256 is named as the next step if `REQ-A-001`'s future services ever need to (ADR-008)
+  - the client stores the session in `sessionStorage`, not `localStorage`, and why (ADR-008)
   - the seed is 200,000 rows: it *demonstrates*; the *design* is what holds at millions (§3.3)
   - sorting by status or request type follows the **enumeration's life-cycle order**, not alphabetical order (T6)
-  - owners and assignees are spread over a thousand identifiers, and there is no `User` table — they are identifiers only, by decision in `requirements.md`
+  - **owners and assignees now identify real `Users` rows, backed by a foreign key (ADR-010, `[STAKEHOLDER #1]`)** — this replaces the original "identifiers only, no `User` table" assumption, which `requirements.md`'s `[STAKEHOLDER #1]` entry explicitly reverses
+  - id 1's and id 2's measured request counts from T3a (the login demo's expected totals)
   - the `EXPLAIN QUERY PLAN` output captured in T6, with the measured timings and what they are evidence *of*: the work the database does per search does not grow with the table, which is `REQ-N-001`'s actual criterion
-- [ ] **One technical decision with real alternatives** (`REQ-D-006`) — **ADR-002 is the intended answer** (§ADR-002). ADR-007 is a strong second: both alternatives were real and one was chosen deliberately
-- [ ] **What was not completed and how it would continue** (`REQ-D-007`) — every cut actually taken from the cut-order table, plus the standing next steps the design already names: keyset pagination if access turns into deep scrolling (ADR-003), a trigram index or search engine for the substring scan (ADR-006), FluentValidation to close the non-HTTP caller gap (ADR-004)
+- [ ] **One technical decision with real alternatives** (`REQ-D-006`) — **ADR-008 is now the intended answer**: it documents a decision (ADR-002) that was later reversed, with the reversal itself on record — a stronger demonstration of reasoning under changing constraints than an unreversed ADR can give. ADR-002 and ADR-007 remain strong alternatives if a single, simpler example is preferred
+- [ ] **What was not completed and how it would continue** (`REQ-D-007`) — every cut actually taken from the cut-order table, plus the standing next steps the design already names: keyset pagination if access turns into deep scrolling (ADR-003), a trigram index or search engine for the substring scan (ADR-006), FluentValidation to close the non-HTTP caller gap (ADR-004), full ASP.NET Core Identity if self-registration or external login are ever added (ADR-009), RS256 if a second service ever needs to verify a token independently (ADR-008)
 
 **Done when** — each `REQ-D-002`–`REQ-D-007` acceptance criterion is satisfiable by reading one section, and both `[DERIVED]` requirements appear by name.
 
@@ -581,6 +704,9 @@ Every requirement maps to at least one task. **A requirement with no task is an 
 | `REQ-F-008` | T2, T6, T8 |
 | `REQ-F-009` | T6, T8 |
 | `REQ-F-010` | T4, T5, T6, T7, T10 |
+| `REQ-F-011` | T3a `[STAKEHOLDER #1]` |
+| `REQ-F-012` | T3a, T7, T8a, T9a `[STAKEHOLDER #1]` |
+| `REQ-F-013` | T7, T8a, T9a `[STAKEHOLDER #1]` |
 | `REQ-F-101` | T10 |
 | `REQ-F-102` | T10 |
 | `REQ-F-103` | T7, T10 |
@@ -588,9 +714,13 @@ Every requirement maps to at least one task. **A requirement with no task is an 
 | `REQ-F-105` | T4, T10 |
 | `REQ-F-106` | T10 |
 | `REQ-F-107` | T9 |
+| `REQ-F-108` | T9a `[STAKEHOLDER #1]` |
+| `REQ-F-109` | T9a, T10 `[STAKEHOLDER #1]` |
 | `REQ-N-001` | T2, T3, T6, T10 |
 | `REQ-N-002` | T4, T6, T9, T10 |
 | `REQ-N-003` | T2, T6, T9 |
+| `REQ-N-004` | T7 `[STAKEHOLDER #1]` |
+| `REQ-N-005` | T7, T9a `[STAKEHOLDER #1]` |
 | `REQ-A-001` | T11 |
 | `REQ-A-002` | T11 |
 | `REQ-C-001` | T11 |

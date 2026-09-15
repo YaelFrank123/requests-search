@@ -21,6 +21,7 @@
 - Acceptance criteria use **EARS**: `WHEN <trigger> THE SYSTEM SHALL <response>`.
 - **`[DERIVED]`** — a requirement absent from the brief that follows **necessarily** from one that is present. Always carries its rationale and its parent. Collected in [Derived requirements](#derived-requirements).
 - **`[CLARIFIED #n]`** — resolution of an ambiguity found in the brief. Full list in [Clarification decisions](#appendix-clarification-decisions).
+- **`[STAKEHOLDER #n]`** — a requirement added after this specification was first written, at the stakeholder's explicit request, that neither follows necessarily from the brief (so it is not `[DERIVED]`) nor resolves a brief ambiguity (so it is not `[CLARIFIED]`). Carries a date and, when it reverses an earlier decision, a pointer to what it reverses. Full list in [Stakeholder-directed changes](#appendix-stakeholder-directed-changes).
 - "requests the user is permitted to see" always means as constrained by `REQ-F-008` / `REQ-F-009`.
 
 ---
@@ -114,7 +115,7 @@ Invalid values include at least:
 
 ---
 
-## 2. Permissions
+## 2. Authentication & Permissions
 
 ### REQ-F-008 — Regular user
 *Source: Part A → Backend → Permissions → "a regular user sees only Requests they own or are assigned to"*
@@ -142,7 +143,35 @@ THE SYSTEM SHALL enforce `REQ-F-008` and `REQ-F-009` on the server only.
 - The acting user's identity is **not** taken from a search parameter under client control.
 - **Decisive acceptance test:** the exact same search request, performed as a regular user and as an Administrator, returns **different result sets and different total counts**.
 
-> **Distinction fixed during clarification:** this requirement concerns **authorization** — what a given identity may see. **Authentication** — how that identity is proven — is **out of scope** (see [Out of scope](#out-of-scope)). `[CLARIFIED #1]`
+> **Distinction fixed during clarification, later revised:** this requirement concerns **authorization** — what a given identity may see. **Authentication** — how that identity is proven — was originally out of scope (`[CLARIFIED #1]`). That exclusion was reversed at explicit stakeholder request; see `REQ-F-011`–`REQ-F-013` below and `[STAKEHOLDER #1]`.
+
+### REQ-F-011 — User accounts and roles
+*Source: stakeholder request, 2026-09-15 — not present in the assignment brief* `[STAKEHOLDER #1]`
+
+THE SYSTEM SHALL maintain a store of user accounts, each with exactly one role: **User** or **Administrator**.
+
+**Acceptance criteria**
+- Every request's `OwnerId`, and `AssignedToUserId` when present, identifies a real user account.
+- A user's role is the sole basis for the `REQ-F-008`/`REQ-F-009` distinction. There is no third role and no per-request permission override.
+
+### REQ-F-012 — Login
+*Source: stakeholder request, 2026-09-15* `[STAKEHOLDER #1]`
+
+WHEN a client submits a username and a password to the login endpoint
+THE SYSTEM SHALL, on a match against a stored account, return a signed token asserting that account's identity and role.
+
+**Acceptance criteria**
+- WHEN the credentials do not match any account THE SYSTEM SHALL reject with a single, generic invalid-credentials response that does **not** reveal whether the username exists.
+- The response carries the token's expiry, so the client can react before it lapses (`REQ-N-005`).
+
+### REQ-F-013 — Token-based identity
+*Source: stakeholder request, 2026-09-15 — supersedes the header-based identity source this specification originally assumed for `REQ-F-010`* `[STAKEHOLDER #1]`
+
+WHEN a request to a protected endpoint carries no token, an unparseable token, or an expired token
+THE SYSTEM SHALL reject it with **401** — exactly what `REQ-F-010` already required of a missing identity.
+
+**Acceptance criteria**
+- The acting identity is read only from a verified token, never from a client-supplied header or parameter. This is what makes `REQ-F-010`'s enforcement real rather than merely asserted.
 
 ---
 
@@ -193,6 +222,19 @@ THE SYSTEM SHALL display an explicit message stating that no results match the c
 
 THE USER INTERFACE SHALL be implemented in Angular or in React. *The actual choice and its rationale belong to `design-feature.md` and the README (`REQ-D-004`).*
 
+### REQ-F-108 — Login screen
+*Source: stakeholder request, 2026-09-15* `[STAKEHOLDER #1]`
+
+THE SYSTEM SHALL present a login form collecting a username and a password, and SHALL display a visible error WHEN the login endpoint rejects them.
+
+### REQ-F-109 — Client session handling
+*Source: stakeholder request, 2026-09-15* `[STAKEHOLDER #1]`
+
+THE SYSTEM SHALL attach the current session's token to every request to a protected endpoint, and WHEN a request is rejected under `REQ-F-013` THE SYSTEM SHALL return the user to the login screen.
+
+**Acceptance criteria**
+- A logout action ends the session and returns to the login screen.
+
 ---
 
 ## 4. Non-functional requirements
@@ -230,6 +272,19 @@ THE SYSTEM SHALL define and document a single, consistent time zone for all syst
 - WHEN a creation timestamp is displayed to a user THE SYSTEM SHALL display it consistently, and the behaviour SHALL be documented in the README (`REQ-D-005`).
 
 > **Derivation rationale:** `REQ-F-003` defines a date range but fixes no time zone. Without an explicit decision the same range returns different results for clients in different zones — which makes `REQ-F-003` unverifiable.
+
+### REQ-N-004 — Password storage
+*Source: stakeholder request, 2026-09-15* `[STAKEHOLDER #1]`
+
+THE SYSTEM SHALL store passwords only as a salted, one-way hash, and SHALL NOT log a password or a token in plaintext.
+
+### REQ-N-005 — Token lifetime
+*Source: stakeholder request, 2026-09-15* `[STAKEHOLDER #1]`
+
+THE SYSTEM SHALL issue tokens with a fixed, documented lifetime.
+
+**Acceptance criteria**
+- Renewal (refresh tokens) is out of scope — see [Out of scope](#out-of-scope). On expiry, the client returns to `REQ-F-108`.
 
 ---
 
@@ -341,16 +396,22 @@ All requirements not present in the brief, collected. **This section is the dire
 **Derivation rule applied:** *a derived requirement must be a **necessary** consequence of a stated requirement, not a **desirable** companion to one.*
 Both requirements above pass this rule. **Authentication was tested against it and rejected** — authorization can be enforced against a trusted identity source without building a sign-in mechanism.
 
+> **That rejection was reversed on 2026-09-15** — see `[STAKEHOLDER #1]`. Authentication (`REQ-F-011`–`REQ-F-013`) is now in scope, but it is recorded as a **stakeholder-directed addition**, not reclassified as `[DERIVED]`: the rule above still applies, and authentication still does not follow *necessarily* from the brief. The two labels answer different questions — "what must follow from the brief" versus "what was added afterward" — and conflating them would misstate why the requirement exists.
+
 ---
 
 ## Out of scope
 
 | Topic | Reason |
 |---|---|
-| **Authentication** — sign-in, password handling, token issuance | The brief requires *permission enforcement* (`REQ-F-010`) and never mentions sign-in, passwords or tokens. The counter-argument — "enforcement against an unverified identity is hollow" — was weighed and explicitly rejected; it is recorded as an alternative in ADR-002 and feeds `REQ-D-006`. Note that `design-feature.md` ADR-002 does register an ASP.NET Core *authentication scheme*; that is the framework pipeline used to carry an asserted identity and produce a 401 when it is missing, not verification of a credential. `[CLARIFIED #1]` |
+| ~~**Authentication**~~ — moved **in scope** 2026-09-15 | Originally excluded because the brief requires *permission enforcement* (`REQ-F-010`) only and never mentions sign-in, passwords or tokens — that original reasoning is preserved at `[CLARIFIED #1]` and in `design-feature.md` ADR-002 (marked superseded, not deleted). Reversed at explicit stakeholder request: see `REQ-F-011`–`REQ-F-013`, `REQ-F-108`, `REQ-F-109`, `REQ-N-004`, `REQ-N-005` and `[STAKEHOLDER #1]` |
+| **Token renewal / refresh tokens** | `[STAKEHOLDER #1]` fixes a single token lifetime (`REQ-N-005`); re-authenticating through `REQ-F-108` on expiry was chosen over the added complexity of a refresh flow, which nothing in the brief or the stakeholder request asks for |
+| **Self-registration and password reset** | Accounts are provisioned (seeded) by the system, not created or recovered by users; `[STAKEHOLDER #1]` asks for role-linked requests and a login screen, not account-management flows |
+| **Login rate limiting / account lockout** | `REQ-N-004` covers password *storage*; repeated-attempt throttling is a separate concern `[STAKEHOLDER #1]` did not ask for, against a small set of seeded, low-stakes demo accounts. Recorded here rather than left silently absent |
 | Actual deployment and infrastructure code | Explicitly excluded by the brief (Part C) |
 | Creating, editing or deleting requests | The brief adds **search and filtering** to an existing display capability only |
-| User and customer management | Not required; owner, assignee and customer are handled as identifiers only |
+| Customer management | Not required; the customer stays an identifier only — unaffected by `[STAKEHOLDER #1]`, which concerns request owners and assignees, not customers |
+| User account management — creating, editing or deactivating accounts through the product | `[STAKEHOLDER #1]` requires accounts to *authenticate against*, not a product surface for administering them; accounts are provisioned by seeding (`design-feature.md` ADR-010) |
 
 ---
 
@@ -371,6 +432,16 @@ Eight ambiguities found in the brief and resolved **before** this specification 
 
 ---
 
+## Appendix: stakeholder-directed changes
+
+Changes made **after** this specification was first written, at the stakeholder's explicit request, rather than resolved from the brief. Unlike the clarifications above, these do not answer an ambiguity in the brief — they add scope the brief did not ask for. Row 1 of the clarification table above is left unedited as an accurate record of what the brief itself implied; this table records what was later decided to override it, and why.
+
+| # | Date | Change | Reverses | Rationale |
+|---|---|---|---|---|
+| 1 | 2026-09-15 | Full authentication in scope: a `User` entity backing `REQ-F-008`/`REQ-F-009`, a login endpoint issuing signed tokens, token-based identity replacing the header source, and a login screen (`REQ-F-011`–`REQ-F-013`, `REQ-F-108`, `REQ-F-109`, `REQ-N-004`, `REQ-N-005`) | Clarification #1's brief-only exclusion of authentication; `design-feature.md` ADR-002's Option C rejection | Explicit stakeholder decision. Not `[DERIVED]`: the derivation rule in [Derived requirements](#derived-requirements) still excludes authentication from that status, since it is not a *necessary* consequence of any requirement sourced from the brief |
+
+---
+
 ## Coverage matrix
 
 The design column is filled in as the design documents are written. **A requirement with no design section is an orphan — that is, a gap.**
@@ -383,7 +454,7 @@ The design column is filled in as the design documents are written. **A requirem
 | `REQ-F-005` | Part A — Backend | `design-feature.md` §3.3, §3.4a |
 | `REQ-F-007` | Part A — Backend | `design-feature.md` ADR-003, ADR-004, §3.4, §3.4a |
 | `REQ-F-008`, `REQ-F-009` | Part A — Permissions | `design-feature.md` §3.2, §3.3 |
-| `REQ-F-010` | Part A — Permissions | `design-feature.md` ADR-002, §3.2, §3.4 |
+| `REQ-F-010` | Part A — Permissions | `design-feature.md` ADR-002 *(superseded)*, ADR-008, §3.2, §3.4 |
 | `REQ-F-101`–`REQ-F-106` | Part A — Frontend | `design-feature.md` ADR-005, §3.4a, §3.5 |
 | `REQ-F-107` | Part A — Frontend | `design-feature.md` ADR-005, ADR-007 |
 | `REQ-N-001` | Part A — Performance | `design-feature.md` ADR-001, §3.3 |
@@ -395,3 +466,6 @@ The design column is filled in as the design documents are written. **A requirem
 | `REQ-A-001`, `REQ-A-002` | Part B | *pending — `design-architecture-cloud.md`* |
 | `REQ-C-001` | Part C | *pending — `design-architecture-cloud.md`* |
 | `REQ-D-001`, `REQ-D-013`, `REQ-D-014` | Submission | *`REQ-D-001` on completion of §5; `REQ-D-013` pending Part B/C; `REQ-D-014` = this directory* |
+| `REQ-F-011`–`REQ-F-013` | `[STAKEHOLDER #1]` | `design-feature.md` ADR-008, ADR-009, ADR-010, §3.1–§3.4a |
+| `REQ-F-108`, `REQ-F-109` | `[STAKEHOLDER #1]` | `design-feature.md` §3.5 |
+| `REQ-N-004`, `REQ-N-005` | `[STAKEHOLDER #1]` | `design-feature.md` ADR-008, ADR-009, §3.3, §3.4a |
