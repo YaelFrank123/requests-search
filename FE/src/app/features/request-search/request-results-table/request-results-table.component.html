@@ -1,13 +1,13 @@
-@if (loading) {
+@if (loading()) {
   <mat-progress-bar mode="indeterminate" class="state-loading"></mat-progress-bar>
-} @else if (errorMessage) {
+} @else if (errorMessage()) {
   <div class="state-error">
-    <p>{{ errorMessage }}</p>
+    <p>{{ errorMessage() }}</p>
   </div>
-} @else if (rows.length === 0) {
+} @else if (rows().length === 0) {
   <p class="state-empty">No requests match your filters.</p>
 } @else {
-  <table mat-table [dataSource]="rows" matSort [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+  <table mat-table [dataSource]="rows()" matSort [matSortActive]="sortActive()" [matSortDirection]="sortDirection()"
     (matSortChange)="sortChange.emit($event)" class="results-table">
     <ng-container matColumnDef="requestNumber">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Request Number</th>
@@ -49,9 +49,9 @@
   </table>
 
   <mat-paginator
-    [length]="totalCount"
-    [pageIndex]="page - 1"
-    [pageSize]="pageSize"
+    [length]="totalCount()"
+    [pageIndex]="page() - 1"
+    [pageSize]="pageSize()"
     [pageSizeOptions]="pageSizeOptions"
     (page)="pageChange.emit($event)"
   ></mat-paginator>

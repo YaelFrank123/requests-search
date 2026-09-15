@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,7 +22,7 @@ import { AuthService } from '../../../core/services/auth.service';
         MatProgressBarModule
     ],
     templateUrl: './login-page.component.html',
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrl: './login-page.component.scss'
 })
 export class LoginPageComponent {
@@ -36,32 +36,33 @@ export class LoginPageComponent {
     password: ['', Validators.required]
   });
 
-  loading = false;
-  errorMessage: string | null = null;
+  readonly loading = signal(false);
+  readonly errorMessage = signal<string | null>(null);
 
   submit(): void {
-    if (this.form.invalid || this.loading) {
+    if (this.form.invalid || this.loading()) {
       return;
     }
 
     const { username, password } = this.form.getRawValue();
-    this.loading = true;
-    this.errorMessage = null;
+    this.loading.set(true);
+    this.errorMessage.set(null);
 
     this.authService
       .login(username, password)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.loading = false;
+          this.loading.set(false);
           this.router.navigateByUrl('/requests');
         },
         error: (error: unknown) => {
-          this.loading = false;
-          this.errorMessage =
+          this.loading.set(false);
+          this.errorMessage.set(
             error instanceof HttpErrorResponse && typeof error.error?.title === 'string'
               ? error.error.title
-              : 'Invalid username or password.';
+              : 'Invalid username or password.'
+          );
         }
       });
   }

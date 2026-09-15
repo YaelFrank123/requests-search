@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -15,21 +15,21 @@ import { RequestDto } from '../../../core/models/request.model';
     selector: 'app-request-results-table',
     imports: [MatTableModule, MatSortModule, MatPaginatorModule, MatProgressBarModule],
     templateUrl: './request-results-table.component.html',
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrl: './request-results-table.component.scss'
 })
 export class RequestResultsTableComponent {
-  @Input() rows: RequestDto[] = [];
-  @Input() totalCount = 0;
-  @Input() page = 1;
-  @Input() pageSize = 25;
-  @Input() sortActive = '';
-  @Input() sortDirection: 'asc' | 'desc' | '' = '';
-  @Input() loading = false;
-  @Input() errorMessage: string | null = null;
+  readonly rows = input<RequestDto[]>([]);
+  readonly totalCount = input(0);
+  readonly page = input(1);
+  readonly pageSize = input(25);
+  readonly sortActive = input('');
+  readonly sortDirection = input<'asc' | 'desc' | ''>('');
+  readonly loading = input(false);
+  readonly errorMessage = input<string | null>(null);
 
-  @Output() readonly sortChange = new EventEmitter<Sort>();
-  @Output() readonly pageChange = new EventEmitter<PageEvent>();
+  readonly sortChange = output<Sort>();
+  readonly pageChange = output<PageEvent>();
 
   readonly displayedColumns = [
     'requestNumber',

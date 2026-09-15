@@ -13,15 +13,15 @@
           <input matInput type="password" formControlName="password" autocomplete="current-password" />
         </mat-form-field>
 
-        @if (errorMessage) {
-          <p class="error-message">{{ errorMessage }}</p>
+        @if (errorMessage()) {
+          <p class="error-message">{{ errorMessage() }}</p>
         }
 
-        @if (loading) {
+        @if (loading()) {
           <mat-progress-bar mode="indeterminate"></mat-progress-bar>
         }
 
-        <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || loading">
+        <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || loading()">
           Sign in
         </button>
       </form>

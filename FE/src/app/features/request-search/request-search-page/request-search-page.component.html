@@ -1,5 +1,5 @@
 <header class="page-header">
-  <span>Logged in as {{ authService.username }} ({{ authService.role }})</span>
+  <span>Logged in as {{ authService.username() }} ({{ authService.role() }})</span>
   <button mat-button (click)="logout()">Logout</button>
 </header>
 
@@ -42,14 +42,14 @@
 </form>
 
 <app-request-results-table
-  [rows]="rows"
-  [totalCount]="totalCount"
-  [page]="page"
-  [pageSize]="pageSize"
-  [sortActive]="sortActive"
-  [sortDirection]="sortDirection"
-  [loading]="loading"
-  [errorMessage]="errorMessage"
+  [rows]="rows()"
+  [totalCount]="totalCount()"
+  [page]="page()"
+  [pageSize]="pageSize()"
+  [sortActive]="sortActive()"
+  [sortDirection]="sortDirection()"
+  [loading]="loading()"
+  [errorMessage]="errorMessage()"
   (sortChange)="onSortChange($event)"
   (pageChange)="onPageChange($event)"
 >

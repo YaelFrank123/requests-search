@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -8,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { Sort } from '@angular/material/sort';
-import { EMPTY, Subject, catchError, debounceTime, distinctUntilChanged, startWith, switchMap, takeUntil, tap } from 'rxjs';
+import { EMPTY, Subject, catchError, debounceTime, distinctUntilChanged, startWith, switchMap, tap } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { RequestsApiService } from '../../../core/services/requests-api.service';
@@ -39,14 +40,14 @@ function toLocalDateString(date: Date): string {
         RequestResultsTableComponent
     ],
     templateUrl: './request-search-page.component.html',
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrl: './request-search-page.component.scss'
 })
-export class RequestSearchPageComponent implements OnInit, OnDestroy {
+export class RequestSearchPageComponent implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly api = inject(RequestsApiService);
   private readonly fb = inject(FormBuilder);
-  private readonly destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
   private readonly search$ = new Subject<void>();
 
   readonly statusOptions = STATUS_OPTIONS;
@@ -60,30 +61,19 @@ export class RequestSearchPageComponent implements OnInit, OnDestroy {
     createdTo: [null as Date | null]
   });
 
-  private currentSort: { sortBy?: RequestSortField; sortDirection?: SortDirection } = {};
-  private currentPage = 1;
-  private currentPageSize = 25;
+  private readonly currentSort = signal<{ sortBy?: RequestSortField; sortDirection?: SortDirection }>({});
+  private readonly currentPage = signal(1);
+  private readonly currentPageSize = signal(25);
 
-  rows: RequestDto[] = [];
-  totalCount = 0;
-  loading = false;
-  errorMessage: string | null = null;
+  readonly rows = signal<RequestDto[]>([]);
+  readonly totalCount = signal(0);
+  readonly loading = signal(false);
+  readonly errorMessage = signal<string | null>(null);
 
-  get page(): number {
-    return this.currentPage;
-  }
-
-  get pageSize(): number {
-    return this.currentPageSize;
-  }
-
-  get sortActive(): string {
-    return this.currentSort.sortBy ?? '';
-  }
-
-  get sortDirection(): 'asc' | 'desc' | '' {
-    return this.currentSort.sortDirection ?? '';
-  }
+  readonly page = computed(() => this.currentPage());
+  readonly pageSize = computed(() => this.currentPageSize());
+  readonly sortActive = computed(() => this.currentSort().sortBy ?? '');
+  readonly sortDirection = computed(() => this.currentSort().sortDirection ?? '');
 
   ngOnInit(): void {
     // A filter change always returns to page 1 — landing on page 40 of a
@@ -92,8 +82,8 @@ export class RequestSearchPageComponent implements OnInit, OnDestroy {
       .pipe(
         debounceTime(300),
         distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-        tap(() => (this.currentPage = 1)),
-        takeUntil(this.destroy$)
+        tap(() => this.currentPage.set(1)),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => this.search$.next());
 
@@ -101,47 +91,43 @@ export class RequestSearchPageComponent implements OnInit, OnDestroy {
       .pipe(
         startWith(undefined),
         tap(() => {
-          this.loading = true;
-          this.errorMessage = null;
+          this.loading.set(true);
+          this.errorMessage.set(null);
         }),
         switchMap(() =>
           this.api.search(this.buildQuery()).pipe(
             catchError((error: unknown) => {
-              this.loading = false;
-              this.errorMessage =
+              this.loading.set(false);
+              this.errorMessage.set(
                 error instanceof HttpErrorResponse && error.status === 400 && error.error?.errors
                   ? Object.values(error.error.errors as Record<string, string[]>).flat().join(' ')
-                  : 'Something went wrong loading requests.';
+                  : 'Something went wrong loading requests.'
+              );
               return EMPTY;
             })
           )
         ),
-        takeUntil(this.destroy$)
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((result) => {
-        this.loading = false;
-        this.rows = result.items;
-        this.totalCount = result.totalCount;
+        this.loading.set(false);
+        this.rows.set(result.items);
+        this.totalCount.set(result.totalCount);
       });
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   onSortChange(sort: Sort): void {
     // A cleared third click emits direction: '' — sending sortDirection= is a 400.
     // Omit both fields instead, which is what "no sort requested" actually means.
-    this.currentSort = sort.direction
-      ? { sortBy: sort.active as RequestSortField, sortDirection: sort.direction as SortDirection }
-      : {};
+    this.currentSort.set(
+      sort.direction ? { sortBy: sort.active as RequestSortField, sortDirection: sort.direction as SortDirection } : {}
+    );
     this.search$.next();
   }
 
   onPageChange(event: PageEvent): void {
-    this.currentPage = event.pageIndex + 1;
-    this.currentPageSize = event.pageSize;
+    this.currentPage.set(event.pageIndex + 1);
+    this.currentPageSize.set(event.pageSize);
     this.search$.next();
   }
 
@@ -161,16 +147,17 @@ export class RequestSearchPageComponent implements OnInit, OnDestroy {
 
   private buildQuery(): RequestSearchQuery {
     const raw = this.filterForm.getRawValue();
+    const sort = this.currentSort();
     return {
       requestNumber: raw.requestNumber?.trim() || undefined,
       status: raw.status && raw.status.length > 0 ? raw.status : undefined,
       requestType: raw.requestType ?? undefined,
       createdFrom: raw.createdFrom ? toLocalDateString(raw.createdFrom) : undefined,
       createdTo: raw.createdTo ? toLocalDateString(raw.createdTo) : undefined,
-      sortBy: this.currentSort.sortBy,
-      sortDirection: this.currentSort.sortDirection,
-      page: this.currentPage,
-      pageSize: this.currentPageSize
+      sortBy: sort.sortBy,
+      sortDirection: sort.sortDirection,
+      page: this.currentPage(),
+      pageSize: this.currentPageSize()
     };
   }
 }

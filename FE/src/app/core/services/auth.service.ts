@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Inject, Injectable, signal } from '@angular/core';
+import { Inject, Injectable, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 
@@ -25,17 +25,9 @@ export class AuthService {
     @Inject(API_BASE_URL) private readonly apiBaseUrl: string
   ) {}
 
-  get token(): string | null {
-    return this.session()?.token ?? null;
-  }
-
-  get username(): string | null {
-    return this.session()?.username ?? null;
-  }
-
-  get role(): string | null {
-    return this.session()?.role ?? null;
-  }
+  readonly token = computed(() => this.session()?.token ?? null);
+  readonly username = computed(() => this.session()?.username ?? null);
+  readonly role = computed(() => this.session()?.role ?? null);
 
   isAuthenticated(): boolean {
     const session = this.session();

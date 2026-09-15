@@ -10,7 +10,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // A stale token on the login request itself would be a bug signal, not a
   // convenience — the endpoint is [AllowAnonymous] and expects none.
   const isLoginRequest = req.url.endsWith('/auth/login');
-  const token = authService.token;
+  const token = authService.token();
 
   const authorizedReq =
     !isLoginRequest && token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
