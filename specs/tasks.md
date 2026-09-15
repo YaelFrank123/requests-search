@@ -73,6 +73,8 @@ Recorded rather than applied silently. None of them changes a decision.
 |---|---|---|---|
 | 1 | Step 1 bundles the solution file with the provider swap | T1 splits it out | `dotnet build` at the repo root is the gate for every task after it, and it needs the `.sln` to exist first |
 
+**2026-09-15 — repository restructured, requested directly by the user (not a `design-feature.md` deviation).** `src/`, `tests/` and `CandidateTest.sln` moved into `BE/`; `frontend/` renamed to `FE/`. Every file path in T1–T10 above (and in `design-feature.md`) is written against the **old** layout and is **not** rewritten here — those sections are a record of what was true when each task ran, not a live index. Read `src/...` as `BE/src/...`, `tests/...` as `BE/tests/...`, `CandidateTest.sln` as `BE/CandidateTest.sln`, and `frontend/...` as `FE/...` from this point forward. Verified after the move: `dotnet build` and `dotnet test` (8 passed) from `BE/`, `ng build` from `FE/`, and the `git grep --untracked "localhost:60702" FE/src` gate — all still pass, since every internal reference (the `.sln`'s project paths, `Program.cs`'s `ContentRootPath` usage) was relative to begin with. `.claude/launch.json` updated to serve from `FE/`.
+
 ---
 
 # Phase A — Backend
