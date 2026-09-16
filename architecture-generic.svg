@@ -15,11 +15,20 @@
     <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#0277bd"/>
     </marker>
+    <marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ef6c00"/>
+    </marker>
   </defs>
 
   <rect x="0" y="0" width="1400" height="1800" fill="#ffffff"/>
   <text x="700" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Microservices Architecture — technology-agnostic (6 domains — see note)</text>
   <text x="700" y="54" text-anchor="middle" font-size="12" fill="#666">no vendor / no cloud-vs-on-prem decision baked in — every box names a ROLE; red = failure-mode annotation</text>
+
+  <!-- Sync vs Async legend -->
+  <line x1="30" y1="63" x2="70" y2="63" stroke="#0277bd" stroke-width="3" marker-end="url(#a5)"/>
+  <text x="76" y="67" font-size="10.5" font-weight="700" fill="#0277bd">= SYNC API call (blocking, request/response)</text>
+  <line x1="470" y1="63" x2="510" y2="63" stroke="#ef6c00" stroke-width="3" stroke-dasharray="6,3" marker-end="url(#a6)"/>
+  <text x="516" y="67" font-size="10.5" font-weight="700" fill="#ef6c00">= ASYNC MESSAGE (publish/consume via broker, non-blocking)</text>
 
   <!-- Client -->
   <rect x="600" y="72" width="200" height="55" rx="8" fill="#e3f2fd" stroke="#555"/>
@@ -35,12 +44,12 @@
   <text x="700" y="214" text-anchor="middle" font-size="9.5" fill="#333">• routes by path to owning service</text>
   <text x="700" y="227" text-anchor="middle" font-size="9.5" fill="#333">• rate limiting / throttling</text>
 
-  <path d="M640,234 L280,268" stroke="#444" stroke-width="1.6" marker-end="url(#a1)"/>
-  <path d="M700,234 L700,268" stroke="#444" stroke-width="1.6" marker-end="url(#a1)"/>
-  <path d="M770,234 L1130,268" stroke="#444" stroke-width="1.6" marker-end="url(#a1)"/>
-  <text x="330" y="255" font-size="9.5" fill="#444">sync API</text>
-  <text x="710" y="255" font-size="9.5" fill="#444">sync API</text>
-  <text x="1050" y="255" font-size="9.5" fill="#444">sync API</text>
+  <path d="M640,234 L280,268" stroke="#0277bd" stroke-width="2.2" marker-end="url(#a5)"/>
+  <path d="M700,234 L700,268" stroke="#0277bd" stroke-width="2.2" marker-end="url(#a5)"/>
+  <path d="M770,234 L1130,268" stroke="#0277bd" stroke-width="2.2" marker-end="url(#a5)"/>
+  <text x="330" y="255" font-size="9.5" font-weight="700" fill="#0277bd">SYNC API</text>
+  <text x="710" y="255" font-size="9.5" font-weight="700" fill="#0277bd">SYNC API</text>
+  <text x="1050" y="255" font-size="9.5" font-weight="700" fill="#0277bd">SYNC API</text>
 
   <!-- Users cluster -->
   <rect x="40" y="268" width="440" height="140" rx="10" fill="none" stroke="#7e57c2" stroke-dasharray="5,3"/>
@@ -83,12 +92,12 @@
   <text x="710" y="364" text-anchor="middle" font-size="9.5" fill="#333">• create request / change status</text>
   <text x="710" y="377" text-anchor="middle" font-size="9.5" fill="#333">• reacts to DocumentUploaded (see below)</text>
 
-  <path d="M280,345 Q450,395 560,380" stroke="#7e57c2" stroke-width="1.6" fill="none" marker-end="url(#a3)"/>
-  <text x="490" y="401" font-size="8.5" fill="#7e57c2" text-anchor="middle">sync call: fetch owner/assignee user data (fwd token)</text>
+  <path d="M280,345 Q450,395 560,380" stroke="#0277bd" stroke-width="2.2" fill="none" marker-end="url(#a5)"/>
+  <text x="490" y="401" font-size="8.5" font-weight="700" fill="#0277bd" text-anchor="middle">SYNC API: fetch owner/assignee user data (fwd token)</text>
   <text x="490" y="414" font-size="8.5" fill="#c62828" font-weight="600" text-anchor="middle">⚠ if Users down: timeout + circuit breaker + cache fallback</text>
 
-  <path d="M280,502 Q430,430 560,392" stroke="#0277bd" stroke-width="1.6" fill="none" marker-end="url(#a5)"/>
-  <text x="490" y="434" font-size="8.5" fill="#0277bd" text-anchor="middle">sync call: fetch customer info</text>
+  <path d="M280,502 Q430,430 560,392" stroke="#0277bd" stroke-width="2.2" fill="none" marker-end="url(#a5)"/>
+  <text x="490" y="434" font-size="8.5" font-weight="700" fill="#0277bd" text-anchor="middle">SYNC API: fetch customer info</text>
   <text x="490" y="447" font-size="8.5" fill="#0277bd" text-anchor="middle">(display only — non-critical, no auth)</text>
 
   <rect x="560" y="418" width="130" height="60" rx="6" fill="#e0f2f1" stroke="#555"/>
@@ -133,16 +142,16 @@
   <path d="M1140,428 L1160,428" stroke="#444" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a1)"/>
 
   <!-- Publishers into channel -->
-  <path d="M795,478 L795,540" stroke="#444" stroke-width="1.8" marker-end="url(#a1)"/>
-  <text x="808" y="505" font-size="9.5" fill="#444">publish: RequestStatusChanged</text>
-  <text x="808" y="518" font-size="9.5" fill="#444">{eventId, requestId, status, recipients[]}</text>
+  <path d="M795,478 L795,540" stroke="#ef6c00" stroke-width="2.2" stroke-dasharray="6,3" marker-end="url(#a6)"/>
+  <text x="808" y="505" font-size="9.5" font-weight="700" fill="#ef6c00">MSG publish: RequestStatusChanged</text>
+  <text x="808" y="518" font-size="9.5" fill="#ef6c00">{eventId, requestId, status, recipients[]}</text>
 
-  <path d="M1240,455 Q1240,500 950,555" stroke="#444" stroke-width="1.8" fill="none" marker-end="url(#a1)"/>
-  <text x="1030" y="500" font-size="9.5" fill="#444">publish: DocumentUploaded</text>
-  <text x="1030" y="513" font-size="9.5" fill="#444">{eventId, documentId, requestId}</text>
+  <path d="M1240,455 Q1240,500 950,555" stroke="#ef6c00" stroke-width="2.2" stroke-dasharray="6,3" fill="none" marker-end="url(#a6)"/>
+  <text x="1030" y="500" font-size="9.5" font-weight="700" fill="#ef6c00">MSG publish: DocumentUploaded</text>
+  <text x="1030" y="513" font-size="9.5" fill="#ef6c00">{eventId, documentId, requestId}</text>
 
   <!-- Messaging Channel -->
-  <rect x="440" y="545" width="520" height="95" rx="8" fill="#fff8e1" stroke="#555"/>
+  <rect x="440" y="545" width="520" height="95" rx="8" fill="#fff8e1" stroke="#ef6c00" stroke-width="2"/>
   <text x="700" y="568" text-anchor="middle" font-size="12" font-weight="700">Messaging Channel(s) — event backbone</text>
   <text x="700" y="586" text-anchor="middle" font-size="9.5" fill="#333">durable queue/topic abstraction — any broker (message broker, log-based</text>
   <text x="700" y="599" text-anchor="middle" font-size="9.5" fill="#333">stream, or managed pub/sub); topics: RequestStatusChanged, DocumentUploaded</text>
@@ -150,17 +159,17 @@
   <text x="700" y="630" text-anchor="middle" font-size="8.5" fill="#c62828" font-weight="600">⚠ if the broker itself is down: publishers must retry/buffer locally (outbox keeps retrying)</text>
 
   <!-- channel back to Requests (consume DocumentUploaded) -->
-  <path d="M600,545 L640,398" stroke="#5e35b1" stroke-width="1.6" fill="none" stroke-dasharray="2 4" marker-end="url(#a3)"/>
-  <text x="480" y="530" font-size="9.5" fill="#5e35b1">consume: DocumentUploaded</text>
-  <text x="480" y="543" font-size="9.5" fill="#5e35b1">(may flip status when complete)</text>
+  <path d="M600,545 L640,398" stroke="#ef6c00" stroke-width="2.2" fill="none" stroke-dasharray="6,3" marker-end="url(#a6)"/>
+  <text x="480" y="530" font-size="9.5" font-weight="700" fill="#ef6c00">MSG consume: DocumentUploaded</text>
+  <text x="480" y="543" font-size="9.5" fill="#ef6c00">(may flip status when complete)</text>
 
   <!-- channel to Notifications -->
-  <path d="M600,640 L440,690" stroke="#444" stroke-width="1.8" marker-end="url(#a1)"/>
-  <text x="470" y="670" font-size="9.5" fill="#444">consume</text>
+  <path d="M600,640 L440,690" stroke="#ef6c00" stroke-width="2.2" stroke-dasharray="6,3" marker-end="url(#a6)"/>
+  <text x="470" y="670" font-size="9.5" font-weight="700" fill="#ef6c00">MSG consume</text>
 
   <!-- channel to Reporting -->
-  <path d="M820,640 L1050,690" stroke="#546e7a" stroke-width="1.8" marker-end="url(#a4)"/>
-  <text x="900" y="670" font-size="9.5" fill="#546e7a">consume (separate subscription)</text>
+  <path d="M820,640 L1050,690" stroke="#ef6c00" stroke-width="2.2" stroke-dasharray="6,3" marker-end="url(#a6)"/>
+  <text x="900" y="670" font-size="9.5" font-weight="700" fill="#ef6c00">MSG consume (separate subscription)</text>
 
   <!-- Notifications cluster -->
   <rect x="40" y="700" width="620" height="440" rx="10" fill="none" stroke="#ef6c00" stroke-dasharray="5,3"/>
@@ -173,8 +182,8 @@
   <text x="535" y="796" text-anchor="middle" font-size="9.5" fill="#333">• hands off to delivery channel</text>
   <text x="535" y="809" text-anchor="middle" font-size="8.5" fill="#555">on failure: nack / requeue (no ack)</text>
 
-  <path d="M400,795 Q290,850 280,345" stroke="#7e57c2" stroke-width="1.6" fill="none" stroke-dasharray="1 6" marker-end="url(#a3)"/>
-  <text x="200" y="560" font-size="9.5" fill="#7e57c2" transform="rotate(-90 200 560)">sync fallback: fetch recipient if missing</text>
+  <path d="M400,795 Q290,850 280,345" stroke="#0277bd" stroke-width="2" fill="none" stroke-dasharray="1 6" marker-end="url(#a5)"/>
+  <text x="200" y="560" font-size="9.5" font-weight="700" fill="#0277bd" transform="rotate(-90 200 560)">SYNC API fallback: fetch recipient if missing</text>
   <text x="185" y="560" font-size="9" fill="#c62828" font-weight="600" transform="rotate(-90 185 560)">⚠ same Users-down risk — needs fallback</text>
 
   <path d="M535,825 L535,862" stroke="#c62828" stroke-width="1.8" stroke-dasharray="5,2" marker-end="url(#a2)"/>
