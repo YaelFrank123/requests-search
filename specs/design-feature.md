@@ -33,10 +33,10 @@ These constrain every decision below.
 | **B** SQLite file | Real query translation and real index enforcement; no external dependency, so `REQ-D-002` stays a one-line instruction; large seeds are practical | `LIKE '%x%'` still scans (see ADR-006); ASCII-only case rules |
 | **C** PostgreSQL / SQL Server | Closest to production; trigram indexes would make `REQ-F-001` indexable | Requires the reviewer to run a container or a server before anything works, which weighs directly against `REQ-D-002` |
 
-**Decision: B — SQLite**, schema created at startup via `EnsureCreated()`.
+**Decision: B — SQLite**, schema created at startup via EF Core **migrations** (`Database.Migrate()`).
 
 **Consequences.**
-- **No migrations.** `EnsureCreated()` builds the schema, including indexes declared in `OnModelCreating`. EF migrations are neither required nor added.
+- **Migrations, not `EnsureCreated()`.** An initial migration (`InitialCreate`) captures the schema declared in `OnModelCreating`, including indexes. `Database.Migrate()` applies pending migrations on startup, which is the standard EF Core Code First workflow and needs no external dependency — it still runs against the local SQLite file, so `REQ-D-002` is unaffected. A schema change is a new migration rather than a silently-skipped model change against a stale file.
 - `REQ-N-001` becomes verifiable: `EXPLAIN QUERY PLAN` shows whether an index is used. That output is quoted in the README.
 - The gap between what runs locally and what would be recommended in production is documented in the README.
 
@@ -492,7 +492,7 @@ Each of these prevents a specific defect. They are listed because every one of t
 | The CORS policy allows the `Authorization` header, not only the origin | `REQ-F-010`, `REQ-F-013`, `REQ-F-101`–`REQ-F-106` | A bearer token makes every call a preflighted request, and a policy naming only the origin fails the preflight. The failure is invisible to `curl`, so every non-browser test exonerates the server |
 | A cleared sort control sends no sort parameters at all | `REQ-F-005`, `REQ-F-007` | `matSort`'s third click emits an empty direction, which is submitted as `sortDirection=` and rejected with 400 |
 | `RequestSearchQuery.Validate` checks `Enum.IsDefined` for every supplied `status` and for `requestType` | `REQ-F-002`, `REQ-F-004`, `REQ-F-007` | The binder accepts any integer for an enum, so `status=99` binds, matches nothing, and returns an empty page with `200` instead of a `400` — the exact silent absorption `REQ-F-007` forbids |
-| After any model change, the existing database file is deleted before the next run | `REQ-N-001` | `EnsureCreated()` does nothing when the file already exists, so a new column or index is never created and the failure surfaces later as a confusing runtime error |
+| After any model change, a new migration is added (`dotnet ef migrations add <Name>`) | `REQ-N-001` | Editing `OnModelCreating` without a matching migration leaves the running database's schema stale; `Database.Migrate()` only applies migrations that exist |
 | The `Jwt:Key` in `appsettings.json` is at least 256 bits (32 ASCII characters) `[STAKEHOLDER #1]` | `REQ-F-013` | HS256 throws at startup on a shorter key — a fast, loud failure, but worth listing so it isn't mistaken for a code defect |
 | Password verification always goes through `IPasswordHasher.Verify`, never a direct `==` on hashes `[STAKEHOLDER #1]` | `REQ-N-004` | `PasswordHasher<T>` output is salted, so two hashes of the same password differ; a direct comparison rejects every correct password |
 | `JwtBearerOptions.TokenValidationParameters.ClockSkew` is set to `TimeSpan.Zero` `[STAKEHOLDER #1]` | `REQ-N-005`, `REQ-F-013` | The library default is 5 minutes; a token expired by less than that still validates, so a test (or a real client) built around "expired means rejected" silently passes when it should fail |
@@ -505,7 +505,7 @@ Dependency-ordered. Each step names what it serves and how it is verified.
 
 | # | Step | Serves | Verification |
 |---|---|---|---|
-| 1 | Solution file; switch provider to SQLite; `EnsureCreated`; indexes in `OnModelCreating`; 200k bulk seed for `Requests`; **`Users` table, FK from `Request.OwnerId`/`AssignedToUserId`, and 1,000-row `Users` seed with two documented demo logins (ADR-010, `[STAKEHOLDER #1]`)** | `REQ-N-001`, ADR-001, `REQ-F-011` | Application starts; database file is created and populated; `SELECT COUNT(*) FROM Users` = 1000 |
+| 1 | Solution file; switch provider to SQLite; `InitialCreate` migration + `Database.Migrate()`; indexes in `OnModelCreating`; 200k bulk seed for `Requests`; **`Users` table, FK from `Request.OwnerId`/`AssignedToUserId`, and 1,000-row `Users` seed with two documented demo logins (ADR-010, `[STAKEHOLDER #1]`)** | `REQ-N-001`, ADR-001, `REQ-F-011` | Application starts; database file is created and populated; `SELECT COUNT(*) FROM Users` = 1000 |
 | 2 | `ICurrentUser`, `PagedResult<T>`, `RequestSearchQuery` with validation | `REQ-F-001`–`REQ-F-007`, `REQ-N-002` | Compiles; validation rules reviewed against `REQ-F-007`'s table |
 | 3 | Replace `IRequestRepository` / `IRequestService` / `RequestService`. **In the same step, delete the two existing tests and `FakeRequestRepository`** — they implement and call the removed `GetAllAsync`, so the solution does not build until they go. Replacements arrive in step 6 | `REQ-F-010` | No unfiltered data path remains anywhere. **The solution does not build until step 4** — `RequestRepository` still implements the removed `GetAllAsync`, so steps 3 and 4 run back-to-back and the build gate is at the end of step 4 |
 | 4 | `RequestRepository.SearchAsync`, sort mapping | `REQ-F-001`–`REQ-F-009`, `REQ-N-001` | `dotnet build` succeeds — the first green build since step 3; `EXPLAIN QUERY PLAN` shows index use on the permission path |

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Requests.Application.Auth;
 using Requests.Infrastructure;
@@ -81,7 +82,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<RequestsDbContext>();
     var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
     DbSeeder.Seed(db, passwordHasher);
 }
 

@@ -20,7 +20,7 @@ public sealed class SqliteTestDatabase : IDisposable
             .Options;
 
         Context = new RequestsDbContext(options);
-        Context.Database.EnsureCreated();
+        Context.Database.Migrate();
     }
 
     public void Dispose()

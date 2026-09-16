@@ -113,7 +113,9 @@ dotnet sln add src/Requests.Domain/Requests.Domain.csproj src/Requests.Applicati
 | `src/Requests.Infrastructure/DependencyInjection.cs` | `AddInfrastructure(this IServiceCollection, IConfiguration)`; `UseSqlite(...)` |
 | `src/Requests.Api/appsettings.json` | **New file** — none exists today |
 | `src/Requests.Infrastructure/Persistence/RequestsDbContext.cs` | Add `OnModelCreating` |
-| `src/Requests.Api/Program.cs` | Pass configuration; `EnsureCreated()` before seeding |
+| `src/Requests.Api/Program.cs` | Pass configuration; `Database.Migrate()` before seeding |
+| `src/Requests.Infrastructure/Persistence/Migrations/*` | **New** — `InitialCreate` migration generated via `dotnet ef migrations add` |
+| `src/Requests.Api/Requests.Api.csproj` | Add `Microsoft.EntityFrameworkCore.Design` (design-time tooling for `dotnet ef`) |
 
 - [x] Swap the provider package, then `UseSqlite(configuration.GetConnectionString("RequestsDb"))`
 - [x] `appsettings.json`: `ConnectionStrings:RequestsDb` = `Data Source=requests.db`, and `Cors:AllowedOrigins` = `[ "http://localhost:4200" ]` (consumed in T7 — created here so the file is written once)
@@ -138,7 +140,8 @@ b.Property(x => x.CreatedAt).HasConversion(utc);
 b.Property(x => x.UpdatedAt).HasConversion(utc);
 ```
 
-- [x] `Program.cs`: `db.Database.EnsureCreated();` **before** `DbSeeder.Seed(db);`
+- [x] `dotnet ef migrations add InitialCreate --project src/Requests.Infrastructure --startup-project src/Requests.Api --output-dir Persistence/Migrations`
+- [x] `Program.cs`: `db.Database.Migrate();` **before** `DbSeeder.Seed(db);`
 
 **Done when**
 
@@ -147,9 +150,9 @@ b.Property(x => x.UpdatedAt).HasConversion(utc);
 
 **Traps**
 
-- **`EnsureCreated()` must precede `db.Requests.Any()`.** Reversed, the seeder's own guard throws `no such table: Requests`.
+- **`Database.Migrate()` must precede `db.Requests.Any()`.** Reversed, the seeder's own guard throws `no such table: Requests`.
 - **`Data Source=requests.db` resolves against the process working directory, not the project.** Launching from the repo root and from `src/Requests.Api` therefore builds two separate databases, each seeded once — and the symptom is indistinguishable from the guard failing. Anchor it instead: `Path.Combine(builder.Environment.ContentRootPath, "requests.db")`, so the file follows the application rather than the shell.
-- **After any model change, delete `requests.db` before the next run** (§4, last row). `EnsureCreated()` does nothing when the file exists, so a new index is silently never created.
+- **A database file created by the old `EnsureCreated()` has no `__EFMigrationsHistory` table.** `Database.Migrate()` against such a file fails with `table "Users" already exists` — the tables are there, but EF has no record of the `InitialCreate` migration being applied. Delete the stale `requests.db` once when moving from `EnsureCreated()` to migrations; after that, **after any model change, add a new migration** (§4, last row) rather than deleting the file.
 - **The converter's write side is the identity function.** Anything else rewrites stored values and invalidates the `CreatedAt` indexes.
 - Without the converter nothing fails loudly: filtering still works, the response just loses its `Z` and every browser shifts the displayed time (§4).
 
@@ -451,7 +454,7 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "Autho
 | File | Change |
 |---|---|
 | `tests/Requests.Tests/Requests.Tests.csproj` | Drop `Microsoft.EntityFrameworkCore.InMemory`; add `Microsoft.EntityFrameworkCore.Sqlite` |
-| `tests/Requests.Tests/SqliteTestDatabase.cs` | **New** — an `IDisposable` holding an open `SqliteConnection` to `Data Source=:memory:`, a context over it, and `EnsureCreated()` |
+| `tests/Requests.Tests/SqliteTestDatabase.cs` | **New** — an `IDisposable` holding an open `SqliteConnection` to `Data Source=:memory:`, a context over it, and `Database.Migrate()` |
 | `tests/Requests.Tests/StubCurrentUser.cs` | **New** — `ICurrentUser` with two settable values |
 | `tests/Requests.Tests/RequestRepositorySearchTests.cs` | **New** — the five repository tests |
 | `tests/Requests.Tests/RequestSearchQueryValidationTests.cs` | **New** — the validation test |
@@ -476,7 +479,7 @@ curl.exe -s "http://localhost:60702/api/requests?requestNumber=000123" -H "Autho
 **Traps**
 
 - **Each test owns its own connection and database.** A shared in-memory SQLite database leaks rows between tests and produces order-dependent failures.
-- **Hold the connection open.** `Data Source=:memory:` discards the database the moment the last connection closes — including between `EnsureCreated()` and the first query.
+- **Hold the connection open.** `Data Source=:memory:` discards the database the moment the last connection closes — including between `Database.Migrate()` and the first query.
 - **No absolute dates.** Test data is created inside the test; assertions derive their bounds at run time (§3.3).
 - Test 6 needs no database — it validates `RequestSearchQuery` directly.
 
