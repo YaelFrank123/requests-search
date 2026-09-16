@@ -1,58 +1,48 @@
-@if (loading()) {
-  <mat-progress-bar mode="indeterminate" class="state-loading"></mat-progress-bar>
-} @else if (errorMessage()) {
-  <div class="state-error">
-    <p>{{ errorMessage() }}</p>
-  </div>
-} @else if (rows().length === 0) {
-  <p class="state-empty">{{ 'table.noResults' | translate }}</p>
-} @else {
-  <table mat-table [dataSource]="rows()" matSort [matSortActive]="sortActive()" [matSortDirection]="sortDirection()"
-    (matSortChange)="sortChange.emit($event)" class="results-table">
-    <ng-container matColumnDef="requestNumber">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.requestNumber' | translate }}</th>
-      <td mat-cell *matCellDef="let row">{{ row.requestNumber }}</td>
-    </ng-container>
+<table mat-table [dataSource]="rows()" matSort [matSortActive]="sortActive()" [matSortDirection]="sortDirection()"
+  (matSortChange)="sortChange.emit($event)" class="results-table">
+  <ng-container matColumnDef="requestNumber">
+    <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.requestNumber' | translate }}</th>
+    <td mat-cell *matCellDef="let row">{{ row.requestNumber }}</td>
+  </ng-container>
 
-    <ng-container matColumnDef="status">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.status' | translate }}</th>
-      <td mat-cell *matCellDef="let row">{{ row.status }}</td>
-    </ng-container>
+  <ng-container matColumnDef="status">
+    <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.status' | translate }}</th>
+    <td mat-cell *matCellDef="let row">{{ row.status }}</td>
+  </ng-container>
 
-    <ng-container matColumnDef="requestType">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.type' | translate }}</th>
-      <td mat-cell *matCellDef="let row">{{ row.requestType }}</td>
-    </ng-container>
+  <ng-container matColumnDef="requestType">
+    <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.type' | translate }}</th>
+    <td mat-cell *matCellDef="let row">{{ row.requestType }}</td>
+  </ng-container>
 
-    <ng-container matColumnDef="createdAt">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.createdAt' | translate }}</th>
-      <td mat-cell *matCellDef="let row">{{ row.createdAt }}</td>
-    </ng-container>
+  <ng-container matColumnDef="createdAt">
+    <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'table.createdAt' | translate }}</th>
+    <td mat-cell *matCellDef="let row">{{ row.createdAt }}</td>
+  </ng-container>
 
-    <ng-container matColumnDef="customerId">
-      <th mat-header-cell *matHeaderCellDef>{{ 'table.customer' | translate }}</th>
-      <td mat-cell *matCellDef="let row">{{ row.customerId }}</td>
-    </ng-container>
+  <ng-container matColumnDef="customerId">
+    <th mat-header-cell *matHeaderCellDef>{{ 'table.customer' | translate }}</th>
+    <td mat-cell *matCellDef="let row">{{ row.customerId }}</td>
+  </ng-container>
 
-    <ng-container matColumnDef="ownerId">
-      <th mat-header-cell *matHeaderCellDef>{{ 'table.owner' | translate }}</th>
-      <td mat-cell *matCellDef="let row">{{ row.ownerId }}</td>
-    </ng-container>
+  <ng-container matColumnDef="ownerId">
+    <th mat-header-cell *matHeaderCellDef>{{ 'table.owner' | translate }}</th>
+    <td mat-cell *matCellDef="let row">{{ row.ownerId }}</td>
+  </ng-container>
 
-    <ng-container matColumnDef="assignedToUserId">
-      <th mat-header-cell *matHeaderCellDef>{{ 'table.assignedTo' | translate }}</th>
-      <td mat-cell *matCellDef="let row">{{ row.assignedToUserId ?? '—' }}</td>
-    </ng-container>
+  <ng-container matColumnDef="assignedToUserId">
+    <th mat-header-cell *matHeaderCellDef>{{ 'table.assignedTo' | translate }}</th>
+    <td mat-cell *matCellDef="let row">{{ row.assignedToUserId ?? '—' }}</td>
+  </ng-container>
 
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+</table>
 
-  <mat-paginator
-    [length]="totalCount()"
-    [pageIndex]="page() - 1"
-    [pageSize]="pageSize()"
-    [pageSizeOptions]="pageSizeOptions"
-    (page)="pageChange.emit($event)"
-  ></mat-paginator>
-}
+<mat-paginator
+  [length]="totalCount()"
+  [pageIndex]="page() - 1"
+  [pageSize]="pageSize()"
+  [pageSizeOptions]="pageSizeOptions"
+  (page)="pageChange.emit($event)"
+></mat-paginator>

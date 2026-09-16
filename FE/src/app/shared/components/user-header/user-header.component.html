@@ -1,0 +1,4 @@
+<header class="user-header">
+  <span>{{ 'search.loggedInAs' | translate: { username: authService.username(), role: authService.role() } }}</span>
+  <button mat-button (click)="logout()">{{ 'search.logout' | translate }}</button>
+</header>

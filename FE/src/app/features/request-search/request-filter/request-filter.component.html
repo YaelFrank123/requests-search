@@ -1,0 +1,38 @@
+<form [formGroup]="filterForm" class="filter-form" (ngSubmit)="apply()">
+  <mat-form-field appearance="outline">
+    <mat-label>{{ 'search.requestNumber' | translate }}</mat-label>
+    <input matInput formControlName="requestNumber" [placeholder]="'search.requestNumberPlaceholder' | translate" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>{{ 'search.status' | translate }}</mat-label>
+    <mat-select formControlName="status" multiple>
+      @for (option of statusOptions; track option) {
+        <mat-option [value]="option">{{ option }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>{{ 'search.type' | translate }}</mat-label>
+    <mat-select formControlName="requestType">
+      <mat-option [value]="null">{{ 'search.any' | translate }}</mat-option>
+      @for (option of requestTypeOptions; track option) {
+        <mat-option [value]="option">{{ option }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>{{ 'search.createdDateRange' | translate }}</mat-label>
+    <mat-date-range-input [rangePicker]="picker">
+      <input matStartDate formControlName="createdFrom" [placeholder]="'search.startDate' | translate" />
+      <input matEndDate formControlName="createdTo" [placeholder]="'search.endDate' | translate" />
+    </mat-date-range-input>
+    <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+    <mat-date-range-picker #picker></mat-date-range-picker>
+  </mat-form-field>
+
+  <button mat-raised-button color="primary" type="submit">{{ 'search.filter' | translate }}</button>
+  <button mat-button type="button" (click)="clear()">{{ 'search.clearFilters' | translate }}</button>
+</form>
