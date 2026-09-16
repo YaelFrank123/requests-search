@@ -15,7 +15,7 @@ cd BE
 dotnet run --project src/Requests.Api
 ```
 
-- API listens on `http://localhost:60702` (see `BE/src/Requests.Api/Properties/launchSettings.json`).
+- API listens on `https://localhost:60702` (and `http://localhost:60701`) — see `BE/src/Requests.Api/Properties/launchSettings.json`.
 - On first run it applies EF Core migrations to create `BE/src/Requests.Api/requests.db` (SQLite) and seeds it: 1,000 users and 200,000 requests. This takes a few seconds the first time only.
 - **If you change the EF model**, add a migration (`dotnet ef migrations add <Name> --project src/Requests.Infrastructure --startup-project src/Requests.Api`) — `Database.Migrate()` applies pending migrations automatically on the next run.
 - Demo logins (seeded, see `BE/src/Requests.Infrastructure/Persistence/DbSeeder.cs`):
