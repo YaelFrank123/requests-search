@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -11,6 +10,7 @@ import { Router } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { extractHttpErrorMessage } from '../../../shared/utils/http-error.util';
 
 @Component({
     selector: 'app-login-page',
@@ -60,11 +60,7 @@ export class LoginPageComponent {
         },
         error: (error: unknown) => {
           this.loading.set(false);
-          this.errorMessage.set(
-            error instanceof HttpErrorResponse && typeof error.error?.title === 'string'
-              ? error.error.title
-              : 'Invalid username or password.'
-          );
+          this.errorMessage.set(extractHttpErrorMessage(error, 'Invalid username or password.'));
         }
       });
   }
