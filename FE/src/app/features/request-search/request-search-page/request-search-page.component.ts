@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageEvent } from '@angular/material/paginator';
@@ -15,7 +16,6 @@ import { EmptyMessageComponent } from '../../../shared/components/empty-message/
 import { UserHeaderComponent } from '../../../shared/components/user-header/user-header.component';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { toLocalDateString } from '../../../shared/utils/date.util';
-import { extractHttpErrorMessage } from '../../../shared/utils/http-error.util';
 
 const EMPTY_FILTERS: RequestFilterValue = {
   requestNumber: '',
@@ -72,7 +72,11 @@ export class RequestSearchPageComponent implements OnInit {
           this.api.search(this.buildQuery()).pipe(
             catchError((error: unknown) => {
               this.loading.set(false);
-              this.errorMessage.set(extractHttpErrorMessage(error, 'Something went wrong loading requests.'));
+              this.errorMessage.set(
+                error instanceof HttpErrorResponse && error.status === 400 && error.error?.errors
+                  ? Object.values(error.error.errors as Record<string, string[]>).flat().join(' ')
+                  : 'Something went wrong loading requests.'
+              );
               return EMPTY;
             })
           )
