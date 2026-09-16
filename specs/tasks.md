@@ -517,7 +517,7 @@ Kept separate from T8's six — they test the auth pipeline (T7), not the search
 **Files** — new, under `frontend/`
 
 - [x] `ng new frontend --style=scss --ssr=false`, then `ng add @angular/material`
-- [x] `public/site.config.json` (Angular 18+; `src/assets/` on earlier versions) — `{ "apiBaseUrl": "http://localhost:60702/api" }`
+- [x] `src/assets/config/site.config.json` — `{ "apiBaseUrl": "http://localhost:60702/api" }`, alongside `site.config-dev.json`, `site.config-qa.json` and `site.config-prod.json` as per-environment bases (only `site.config.json` is fetched at runtime); `angular.json` copies `src/assets` to `dist/.../assets` in both the `build` and `test` targets
 - [x] `core/config/` — `app-config.service.ts` reading that file once at bootstrap, `api-base-url.token.ts` exposing the address by injection
 - [x] Wire the initialiser in `app.config.ts` so the application does not render until configuration has loaded — **deviation**: this Angular version (18.2) has no `provideAppInitializer`, added in v19; used the `APP_INITIALIZER` multi-token instead, same effect
 - [x] `core/models/` — `request.model.ts`, `search-query.model.ts`, `paged-result.model.ts`, mirroring §3.4a exactly. Enumerations are **string unions**, not numbers
@@ -528,8 +528,8 @@ Kept separate from T8's six — they test the auth pipeline (T7), not the search
 
 **Done when**
 
-- [x] The client boots *(confirmed — `ng serve`, no console errors, `site.config.json` fetched with 200)*; **a search returning rows is not yet checked** — no page issues one yet (T10), and `/api/requests` now requires a Bearer token that only T9a's interceptor supplies. Not a defect here; this bullet completes once T9a and T10 land
-- [x] Editing `apiBaseUrl` in `site.config.json` and reloading retargets the client **without a rebuild** (ADR-007) — verified at the architecture level: the value is fetched at runtime via `HttpBackend` (bypassing interceptors) and is never inlined into the bundle. Not re-verified against a built `dist/` output, since nothing yet consumes `API_BASE_URL` to call the API visibly
+- [x] The client boots *(confirmed — `ng serve`, no console errors, `assets/config/site.config.json` fetched with 200)*; **a search returning rows is not yet checked** — no page issues one yet (T10), and `/api/requests` now requires a Bearer token that only T9a's interceptor supplies. Not a defect here; this bullet completes once T9a and T10 land
+- [x] Editing `apiBaseUrl` in `src/assets/config/site.config.json` and reloading retargets the client **without a rebuild** (ADR-007) — verified at the architecture level: the value is fetched at runtime via `HttpBackend` (bypassing interceptors) and is never inlined into the bundle. Not re-verified against a built `dist/` output, since nothing yet consumes `API_BASE_URL` to call the API visibly
 - [x] No literal API address anywhere but that file: `git grep -n --untracked "localhost:60702" frontend/src` returns nothing — confirmed clean
 
 **Traps**
@@ -537,7 +537,7 @@ Kept separate from T8's six — they test the auth pipeline (T7), not the search
 - **Repeated `status` parameters use `params.append`, not `params.set`.** `set` keeps only the last value and multi-select silently filters by one status (§3.4a).
 - **Format dates as local `yyyy-MM-dd`, never `toISOString().slice(0,10)`.** The range picker yields local midnight; at UTC+3 `toISOString` moves it to the previous day, and the user sees a range shifted by one day with no error. This is the client-side twin of §4's "incoming date bounds are normalised to UTC".
 - **A configuration load failure is a startup error, not a fallback to some default address** (ADR-007).
-- **Load `site.config.json` through `HttpBackend`, not the intercepted `HttpClient`.** Once T9a's auth interceptor exists, it would otherwise decorate a static-asset request with a stale or absent `Authorization` header, and the moment the interceptor needs anything from configuration the bootstrap becomes circular.
+- **Load `assets/config/site.config.json` through `HttpBackend`, not the intercepted `HttpClient`.** Once T9a's auth interceptor exists, it would otherwise decorate a static-asset request with a stale or absent `Authorization` header, and the moment the interceptor needs anything from configuration the bootstrap becomes circular.
 - **Without `provideNativeDateAdapter` the date-range input fails at runtime only** (§4).
 
 ---

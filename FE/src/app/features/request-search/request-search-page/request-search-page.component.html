@@ -1,16 +1,16 @@
 <header class="page-header">
-  <span>Logged in as {{ authService.username() }} ({{ authService.role() }})</span>
-  <button mat-button (click)="logout()">Logout</button>
+  <span>{{ 'search.loggedInAs' | translate: { username: authService.username(), role: authService.role() } }}</span>
+  <button mat-button (click)="logout()">{{ 'search.logout' | translate }}</button>
 </header>
 
 <form [formGroup]="filterForm" class="filter-form" (ngSubmit)="applyFilters()">
   <mat-form-field appearance="outline">
-    <mat-label>Request number</mat-label>
-    <input matInput formControlName="requestNumber" placeholder="e.g. 000123" />
+    <mat-label>{{ 'search.requestNumber' | translate }}</mat-label>
+    <input matInput formControlName="requestNumber" [placeholder]="'search.requestNumberPlaceholder' | translate" />
   </mat-form-field>
 
   <mat-form-field appearance="outline">
-    <mat-label>Status</mat-label>
+    <mat-label>{{ 'search.status' | translate }}</mat-label>
     <mat-select formControlName="status" multiple>
       @for (option of statusOptions; track option) {
         <mat-option [value]="option">{{ option }}</mat-option>
@@ -19,9 +19,9 @@
   </mat-form-field>
 
   <mat-form-field appearance="outline">
-    <mat-label>Type</mat-label>
+    <mat-label>{{ 'search.type' | translate }}</mat-label>
     <mat-select formControlName="requestType">
-      <mat-option [value]="null">Any</mat-option>
+      <mat-option [value]="null">{{ 'search.any' | translate }}</mat-option>
       @for (option of requestTypeOptions; track option) {
         <mat-option [value]="option">{{ option }}</mat-option>
       }
@@ -29,17 +29,17 @@
   </mat-form-field>
 
   <mat-form-field appearance="outline">
-    <mat-label>Created date range</mat-label>
+    <mat-label>{{ 'search.createdDateRange' | translate }}</mat-label>
     <mat-date-range-input [rangePicker]="picker">
-      <input matStartDate formControlName="createdFrom" placeholder="Start date" />
-      <input matEndDate formControlName="createdTo" placeholder="End date" />
+      <input matStartDate formControlName="createdFrom" [placeholder]="'search.startDate' | translate" />
+      <input matEndDate formControlName="createdTo" [placeholder]="'search.endDate' | translate" />
     </mat-date-range-input>
     <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
     <mat-date-range-picker #picker></mat-date-range-picker>
   </mat-form-field>
 
-  <button mat-raised-button color="primary" type="submit">Filter</button>
-  <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+  <button mat-raised-button color="primary" type="submit">{{ 'search.filter' | translate }}</button>
+  <button mat-button type="button" (click)="clearFilters()">{{ 'search.clearFilters' | translate }}</button>
 </form>
 
 <app-request-results-table

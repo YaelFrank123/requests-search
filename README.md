@@ -34,7 +34,7 @@ npm start
 ```
 
 - Serves on `http://localhost:4200`.
-- The API address is read from `FE/public/site.config.json` (`apiBaseUrl`), not hardcoded — change it there if the backend runs on a different port, no rebuild required.
+- The API address is read from `FE/src/assets/config/site.config.json` (`apiBaseUrl`), not hardcoded — change it there if the backend runs on a different port, no rebuild required. `site.config-dev.json`, `site.config-qa.json` and `site.config-prod.json` in the same folder are per-environment bases; only `site.config.json` is fetched at runtime.
 - Log in with one of the demo accounts above; the app is guarded and redirects to `/login` without a valid session.
 
 ## How to run tests

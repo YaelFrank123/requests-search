@@ -1,0 +1,32 @@
+{
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "signIn": "Sign in"
+  },
+  "search": {
+    "loggedInAs": "Logged in as {{username}} ({{role}})",
+    "logout": "Logout",
+    "requestNumber": "Request number",
+    "requestNumberPlaceholder": "e.g. 000123",
+    "status": "Status",
+    "type": "Type",
+    "any": "Any",
+    "createdDateRange": "Created date range",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "filter": "Filter",
+    "clearFilters": "Clear filters"
+  },
+  "table": {
+    "noResults": "No requests match your filters.",
+    "requestNumber": "Request Number",
+    "status": "Status",
+    "type": "Type",
+    "createdAt": "Created At",
+    "customer": "Customer",
+    "owner": "Owner",
+    "assignedTo": "Assigned To"
+  }
+}

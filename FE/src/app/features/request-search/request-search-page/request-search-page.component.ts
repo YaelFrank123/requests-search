@@ -16,6 +16,7 @@ import { RequestsApiService } from '../../../core/services/requests-api.service'
 import { RequestDto, RequestStatus, RequestType } from '../../../core/models/request.model';
 import { RequestSearchQuery, RequestSortField, SortDirection } from '../../../core/models/search-query.model';
 import { RequestResultsTableComponent } from '../request-results-table/request-results-table.component';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 const STATUS_OPTIONS: RequestStatus[] = ['New', 'InProgress', 'Completed', 'Cancelled'];
 const REQUEST_TYPE_OPTIONS: RequestType[] = ['General', 'Legal', 'Payment', 'Appeal'];
@@ -37,7 +38,8 @@ function toLocalDateString(date: Date): string {
         MatSelectModule,
         MatDatepickerModule,
         MatButtonModule,
-        RequestResultsTableComponent
+        RequestResultsTableComponent,
+        TranslatePipe
     ],
     templateUrl: './request-search-page.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,

@@ -10,6 +10,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 @Component({
     selector: 'app-login-page',
@@ -19,7 +20,8 @@ import { AuthService } from '../../../core/services/auth.service';
         MatFormFieldModule,
         MatInputModule,
         MatButtonModule,
-        MatProgressBarModule
+        MatProgressBarModule,
+        TranslatePipe
     ],
     templateUrl: './login-page.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,

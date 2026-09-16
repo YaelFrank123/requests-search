@@ -1,0 +1,32 @@
+{
+  "login": {
+    "title": "התחברות",
+    "username": "שם משתמש",
+    "password": "סיסמה",
+    "signIn": "התחבר"
+  },
+  "search": {
+    "loggedInAs": "מחובר בתור {{username}} ({{role}})",
+    "logout": "התנתק",
+    "requestNumber": "מספר בקשה",
+    "requestNumberPlaceholder": "לדוגמה 000123",
+    "status": "סטטוס",
+    "type": "סוג",
+    "any": "הכל",
+    "createdDateRange": "טווח תאריכי יצירה",
+    "startDate": "תאריך התחלה",
+    "endDate": "תאריך סיום",
+    "filter": "סנן",
+    "clearFilters": "נקה סינון"
+  },
+  "table": {
+    "noResults": "לא נמצאו בקשות התואמות לסינון",
+    "requestNumber": "מספר בקשה",
+    "status": "סטטוס",
+    "type": "סוג",
+    "createdAt": "תאריך יצירה",
+    "customer": "לקוח",
+    "owner": "בעלים",
+    "assignedTo": "משויך ל"
+  }
+}

@@ -14,7 +14,7 @@ export class AppConfigService {
   private config?: SiteConfig;
 
   async load(): Promise<void> {
-    this.config = await firstValueFrom(this.http.get<SiteConfig>('/site.config.json'));
+    this.config = await firstValueFrom(this.http.get<SiteConfig>('/assets/config/site.config.json'));
   }
 
   get apiBaseUrl(): string {

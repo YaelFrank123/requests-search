@@ -8,6 +8,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { API_BASE_URL } from './core/config/api-base-url.token';
 import { AppConfigService } from './core/config/app-config.service';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { TranslateService } from './core/i18n/translate.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,6 +19,7 @@ export const appConfig: ApplicationConfig = {
     provideNativeDateAdapter(),
     // The application does not render until site.config.json has loaded.
     provideAppInitializer(() => inject(AppConfigService).load()),
+    provideAppInitializer(() => inject(TranslateService).load()),
     { provide: API_BASE_URL, useFactory: () => inject(AppConfigService).apiBaseUrl }
   ]
 };

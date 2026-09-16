@@ -5,6 +5,7 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 
 import { RequestDto } from '../../../core/models/request.model';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 /**
  * Presentational only: renders whatever it is given and forwards raw
@@ -13,7 +14,7 @@ import { RequestDto } from '../../../core/models/request.model';
  */
 @Component({
     selector: 'app-request-results-table',
-    imports: [MatTableModule, MatSortModule, MatPaginatorModule, MatProgressBarModule],
+    imports: [MatTableModule, MatSortModule, MatPaginatorModule, MatProgressBarModule, TranslatePipe],
     templateUrl: './request-results-table.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrl: './request-results-table.component.scss'
