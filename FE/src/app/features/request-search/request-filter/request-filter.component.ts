@@ -7,7 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
 import { RequestStatus, RequestType } from '../../../core/models/request.model';
-import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { TranslatePipe } from '@ngx-translate/core';
 
 const STATUS_OPTIONS: RequestStatus[] = ['New', 'InProgress', 'Completed', 'Cancelled'];
 const REQUEST_TYPE_OPTIONS: RequestType[] = ['General', 'Legal', 'Payment', 'Appeal'];

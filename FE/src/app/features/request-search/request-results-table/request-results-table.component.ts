@@ -4,7 +4,7 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 
 import { RequestDto } from '../../../core/models/request.model';
-import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /**
  * Presentational only: renders whatever it is given and forwards raw

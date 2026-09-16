@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 
 import { AuthService } from '../../core/services/auth.service';
-import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
     selector: 'app-user-header',

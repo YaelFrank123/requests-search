@@ -11,10 +11,8 @@ import { RequestSearchQuery, RequestSortField, SortDirection } from '../../../co
 import { RequestResultsTableComponent } from '../request-results-table/request-results-table.component';
 import { RequestFilterComponent, RequestFilterValue } from '../request-filter/request-filter.component';
 import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
-import { ErrorMessageComponent } from '../../../shared/components/error-message/error-message.component';
-import { EmptyMessageComponent } from '../../../shared/components/empty-message/empty-message.component';
 import { UserHeaderComponent } from '../../user-header/user-header.component';
-import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { TranslatePipe } from '@ngx-translate/core';
 import { toLocalDateString } from '../../../shared/utils/date.util';
 
 const EMPTY_FILTERS: RequestFilterValue = {
@@ -31,8 +29,6 @@ const EMPTY_FILTERS: RequestFilterValue = {
         RequestFilterComponent,
         RequestResultsTableComponent,
         LoadingIndicatorComponent,
-        ErrorMessageComponent,
-        EmptyMessageComponent,
         UserHeaderComponent,
         TranslatePipe
     ],
