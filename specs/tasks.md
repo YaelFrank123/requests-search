@@ -519,7 +519,7 @@ Kept separate from T8's six — they test the auth pipeline (T7), not the search
 - [x] `ng new frontend --style=scss --ssr=false`, then `ng add @angular/material`
 - [x] `src/assets/config/site.config.json` — `{ "apiBaseUrl": "http://localhost:60702/api" }`, alongside `site.config-dev.json`, `site.config-qa.json` and `site.config-prod.json` as per-environment bases (only `site.config.json` is fetched at runtime); `angular.json` copies `src/assets` to `dist/.../assets` in both the `build` and `test` targets
 - [x] `core/config/` — `app-config.service.ts` reading that file once at bootstrap, `api-base-url.token.ts` exposing the address by injection
-- [x] Wire the initialiser in `app.config.ts` so the application does not render until configuration has loaded — **deviation**: this Angular version (18.2) has no `provideAppInitializer`, added in v19; used the `APP_INITIALIZER` multi-token instead, same effect
+- [x] Wire the initialiser in `app.config.ts` so the application does not render until configuration has loaded — uses `provideAppInitializer` (Angular 22)
 - [x] `core/models/` — `request.model.ts`, `search-query.model.ts`, `paged-result.model.ts`, mirroring §3.4a exactly. Enumerations are **string unions**, not numbers
 - [x] `core/services/requests-api.service.ts` — one `search(query)` method building the query string per §3.4a
 - [x] `provideNativeDateAdapter()` in `app.config.ts`

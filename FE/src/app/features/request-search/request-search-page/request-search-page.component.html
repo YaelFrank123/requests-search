@@ -5,9 +5,11 @@
 @if (loading()) {
   <app-loading-indicator></app-loading-indicator>
 } @else if (errorMessage()) {
-  <app-error-message [errorMessage]="errorMessage()!"></app-error-message>
+  <div class="error-message">
+    <p>{{ errorMessage() }}</p>
+  </div>
 } @else if (rows().length === 0) {
-  <app-empty-message [message]="'table.noResults' | translate"></app-empty-message>
+  <p class="empty-message">{{ 'table.noResults' | translate }}</p>
 } @else {
   <app-request-results-table
     [rows]="rows()"
