@@ -13,7 +13,7 @@ import { RequestFilterComponent, RequestFilterValue } from '../request-filter/re
 import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
 import { ErrorMessageComponent } from '../../../shared/components/error-message/error-message.component';
 import { EmptyMessageComponent } from '../../../shared/components/empty-message/empty-message.component';
-import { UserHeaderComponent } from '../../../shared/components/user-header/user-header.component';
+import { UserHeaderComponent } from '../../user-header/user-header.component';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { toLocalDateString } from '../../../shared/utils/date.util';
 
