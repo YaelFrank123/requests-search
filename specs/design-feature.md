@@ -385,7 +385,8 @@ features/
   login/
     login-page/              (stateful — the login form, calls AuthService, shows REQ-F-108's error)
   request-search/
-    request-search-page/      (stateful — owns state and hosts the filter controls)
+    request-search-page/      (stateful container — sort/page/results state, composes the two below)
+    request-filter/           (stateful — owns the filter FormGroup, emits committed values)
     request-results-table/    (presentational)
 app.routes.ts, app.config.ts, app.component.*
 ```
@@ -400,15 +401,18 @@ app.routes.ts, app.config.ts, app.component.*
 | `RequestSearchQuery` | Filter, sort and page state as one object — the single definition of "a search" |
 | `PagedResult<T>` | The response envelope: `items`, `totalCount`, `page`, `pageSize` |
 
-**Components** — two, not three, within `features/request-search/` (that count is unchanged by `[STAKEHOLDER #1]`; `LoginPageComponent` below is a separate feature area, not a third component in this one).
+**Components** — three, within `features/request-search/` (revised from the original two-component design below; `LoginPageComponent` is a separate feature area, not a fourth component in this one).
 
 | Component | Kind | Owns | Inputs | Outputs |
 |---|---|---|---|---|
-| `RequestSearchPageComponent` | stateful | the filter form group, sort state, page state, and the loading / error / results state; renders the filter controls directly | — | — |
-| `RequestResultsTableComponent` | presentational | nothing | `rows`, `totalCount`, `page`, `pageSize`, `sort`, `loading`, `errorMessage` | `sortChange`, `pageChange` |
+| `RequestSearchPageComponent` | stateful (container) | sort state, page state, the committed filter values, and the loading / error / results state; composes the other two components | — | — |
+| `RequestFilterComponent` | stateful | its own `FormGroup` for the filter fields (`requestNumber`, `status`, `requestType`, date range) | — | `filtersChanged` |
+| `RequestResultsTableComponent` | presentational | nothing | `rows`, `totalCount`, `page`, `pageSize`, `sortActive`, `sortDirection` | `sortChange`, `pageChange` |
 | `LoginPageComponent` *(`features/login/`, `[STAKEHOLDER #1]`)* | stateful | the login form and its error state | — | — |
 
-> **Why the filter form is not its own component.** It would never be reused, and splitting it would buy readability at the cost of passing a form group across a boundary for no other purpose. The split that *is* worth making is the table, because that boundary is what keeps sorting and paging on the server (see the state rules below).
+> **Revision, made during implementation.** The original design (kept below for the record) put the filter controls directly in the page component, on the reasoning that the form would never be reused and splitting it would only cost a form-group boundary crossing. During implementation this was revised to a separate `RequestFilterComponent`: the filter form and the results table have no necessary coupling to each other — one collects not-yet-submitted input, the other renders already-fetched rows — so a container composing two focused components is the more correct shape, independent of reuse. This does not change the state-ownership rules below: the *committed* filter values the page acts on still live in the page component (`onFiltersChanged` receives them and stores them); only the *in-progress, uncommitted* form-control state now lives inside `RequestFilterComponent` itself, scoped to where it is actually edited.
+>
+> **Original reasoning, superseded by the above:** *"Why the filter form is not its own component. It would never be reused, and splitting it would buy readability at the cost of passing a form group across a boundary for no other purpose."* The split that was already judged worth making, the table, is unaffected by this revision — that boundary is still what keeps sorting and paging on the server (see the state rules below).
 
 **Services and configuration**
 
