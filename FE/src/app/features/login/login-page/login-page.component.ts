@@ -10,7 +10,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth.service';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 @Component({
     selector: 'app-login-page',
@@ -32,6 +32,7 @@ export class LoginPageComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   readonly form = this.fb.nonNullable.group({
     username: ['', Validators.required],
@@ -63,7 +64,7 @@ export class LoginPageComponent {
           this.errorMessage.set(
             error instanceof HttpErrorResponse && typeof error.error?.title === 'string'
               ? error.error.title
-              : 'Invalid username or password.'
+              : this.translate.instant('login.invalidCredentials')
           );
         }
       });

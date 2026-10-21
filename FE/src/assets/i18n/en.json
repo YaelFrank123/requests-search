@@ -3,7 +3,8 @@
     "title": "Sign in",
     "username": "Username",
     "password": "Password",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "invalidCredentials": "Invalid username or password."
   },
   "search": {
     "loggedInAs": "Logged in as {{username}} ({{role}})",
@@ -17,7 +18,8 @@
     "startDate": "Start date",
     "endDate": "End date",
     "filter": "Filter",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "loadError": "Something went wrong loading requests."
   },
   "table": {
     "noResults": "No requests match your filters.",

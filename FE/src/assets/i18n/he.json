@@ -3,7 +3,8 @@
     "title": "התחברות",
     "username": "שם משתמש",
     "password": "סיסמה",
-    "signIn": "התחבר"
+    "signIn": "התחבר",
+    "invalidCredentials": "שם משתמש או סיסמה שגויים"
   },
   "search": {
     "loggedInAs": "מחובר בתור {{username}} ({{role}})",
@@ -17,7 +18,8 @@
     "startDate": "תאריך התחלה",
     "endDate": "תאריך סיום",
     "filter": "סנן",
-    "clearFilters": "נקה סינון"
+    "clearFilters": "נקה סינון",
+    "loadError": "משהו השתבש בטעינת הבקשות"
   },
   "table": {
     "noResults": "לא נמצאו בקשות התואמות לסינון",

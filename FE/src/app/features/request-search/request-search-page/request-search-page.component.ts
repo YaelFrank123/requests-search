@@ -12,7 +12,7 @@ import { RequestResultsTableComponent } from '../request-results-table/request-r
 import { RequestFilterComponent, RequestFilterValue } from '../request-filter/request-filter.component';
 import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
 import { UserHeaderComponent } from '../../user-header/user-header.component';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { toLocalDateString } from '../../../shared/utils/date.util';
 
 const EMPTY_FILTERS: RequestFilterValue = {
@@ -39,6 +39,7 @@ const EMPTY_FILTERS: RequestFilterValue = {
 export class RequestSearchPageComponent implements OnInit {
   private readonly api = inject(RequestsApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
   private readonly search$ = new Subject<void>();
 
   private readonly currentFilters = signal<RequestFilterValue>(EMPTY_FILTERS);
@@ -71,7 +72,7 @@ export class RequestSearchPageComponent implements OnInit {
               this.errorMessage.set(
                 error instanceof HttpErrorResponse && error.status === 400 && error.error?.errors
                   ? Object.values(error.error.errors as Record<string, string[]>).flat().join(' ')
-                  : 'Something went wrong loading requests.'
+                  : this.translate.instant('search.loadError')
               );
               return EMPTY;
             })
